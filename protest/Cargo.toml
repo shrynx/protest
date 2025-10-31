@@ -1,0 +1,23 @@
+[package]
+name = "protest"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "property testing for rust"
+readme = "README.md"
+
+[dependencies]
+rand.workspace = true
+num-traits.workspace = true
+crossbeam.workspace = true
+num_cpus.workspace = true
+protest-derive = { version = "0.1.0", path = "../protest-derive", optional = true }
+
+[features]
+default = ["derive"]
+derive = ["protest-derive"]
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["rt-multi-thread", "time", "macros"] }
