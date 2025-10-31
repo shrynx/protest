@@ -6,7 +6,7 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 description = "property testing for rust"
-readme = "README.md"
+readme = "../README.md"
 
 [dependencies]
 rand.workspace = true

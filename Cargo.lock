@@ -246,6 +246,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "protest-extras"
+version = "0.1.0"
+dependencies = [
+ "num-traits",
+ "protest",
+ "rand",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -1,5 +1,5 @@
 [workspace]
-members = ["protest", "protest-derive"]
+members = ["protest", "protest-derive", "protest-extras"]
 resolver = "2"
 
 [workspace.package]
@@ -24,3 +24,4 @@ num_cpus = "1.0"
 [patch.crates-io]
 protest = { path = "protest" }
 protest-derive = { path = "protest-derive" }
+protest-extras = { path = "protest-extras" }

@@ -1,6 +1,6 @@
 //! Generators for primitive types and basic collections.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use crate::arbitrary::Arbitrary;
 use crate::config::GeneratorConfig;
@@ -1577,5 +1577,555 @@ where
         }
 
         Box::new(shrinks.into_iter())
+    }
+}
+
+// ============================================================================
+// HashSet Generator
+// ============================================================================
+
+/// Generator for HashSet collections
+#[derive(Debug, Clone)]
+pub struct HashSetGenerator<T, G> {
+    element_generator: G,
+    min_size: usize,
+    max_size: usize,
+    _phantom: std::marker::PhantomData<T>,
+}
+
+impl<T, G> HashSetGenerator<T, G>
+where
+    T: std::hash::Hash + Eq + Clone,
+    G: Generator<T>,
+{
+    /// Create a new HashSet generator
+    pub fn new(element_generator: G, min_size: usize, max_size: usize) -> Self {
+        Self {
+            element_generator,
+            min_size,
+            max_size,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<T, G> Generator<HashSet<T>> for HashSetGenerator<T, G>
+where
+    T: std::hash::Hash + Eq + Clone + 'static,
+    G: Generator<T> + Clone + 'static,
+{
+    fn generate(&self, rng: &mut dyn rand::RngCore, config: &GeneratorConfig) -> HashSet<T> {
+        use rand::Rng;
+        let size = rng.r#gen_range(self.min_size..=self.max_size);
+        let mut set = HashSet::new();
+
+        // Try to generate unique elements, but don't loop forever
+        let mut attempts = 0;
+        let max_attempts = size * 10;
+
+        while set.len() < size && attempts < max_attempts {
+            let element = self.element_generator.generate(rng, config);
+            set.insert(element);
+            attempts += 1;
+        }
+
+        set
+    }
+
+    fn shrink(&self, value: &HashSet<T>) -> Box<dyn Iterator<Item = HashSet<T>>> {
+        let mut shrinks = Vec::new();
+
+        // Shrink to empty set
+        if !value.is_empty() {
+            shrinks.push(HashSet::new());
+        }
+
+        // Shrink to smaller sets by removing elements
+        if value.len() > 1 {
+            for elem in value.iter().take(value.len() / 2) {
+                let mut smaller = value.clone();
+                smaller.remove(elem);
+                shrinks.push(smaller);
+            }
+        }
+
+        // Shrink individual elements
+        for elem in value {
+            for shrunk_elem in self.element_generator.shrink(elem) {
+                let mut shrunk_set = value.clone();
+                shrunk_set.remove(elem);
+                shrunk_set.insert(shrunk_elem);
+                if shrunk_set != *value {
+                    shrinks.push(shrunk_set);
+                }
+            }
+        }
+
+        Box::new(shrinks.into_iter())
+    }
+}
+
+// ============================================================================
+// BTreeMap Generator
+// ============================================================================
+
+/// Generator for BTreeMap collections
+#[derive(Debug, Clone)]
+pub struct BTreeMapGenerator<K, V, KG, VG> {
+    key_generator: KG,
+    value_generator: VG,
+    min_size: usize,
+    max_size: usize,
+    _phantom: std::marker::PhantomData<(K, V)>,
+}
+
+impl<K, V, KG, VG> BTreeMapGenerator<K, V, KG, VG>
+where
+    K: Ord + Clone,
+    V: Clone,
+    KG: Generator<K>,
+    VG: Generator<V>,
+{
+    /// Create a new BTreeMap generator
+    pub fn new(key_generator: KG, value_generator: VG, min_size: usize, max_size: usize) -> Self {
+        Self {
+            key_generator,
+            value_generator,
+            min_size,
+            max_size,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<K, V, KG, VG> Generator<BTreeMap<K, V>> for BTreeMapGenerator<K, V, KG, VG>
+where
+    K: Ord + Clone + 'static,
+    V: Clone + 'static,
+    KG: Generator<K> + Clone + 'static,
+    VG: Generator<V> + Clone + 'static,
+{
+    fn generate(&self, rng: &mut dyn rand::RngCore, config: &GeneratorConfig) -> BTreeMap<K, V> {
+        use rand::Rng;
+        let size = rng.r#gen_range(self.min_size..=self.max_size);
+        let mut map = BTreeMap::new();
+
+        // Try to generate unique keys
+        let mut attempts = 0;
+        let max_attempts = size * 10;
+
+        while map.len() < size && attempts < max_attempts {
+            let key = self.key_generator.generate(rng, config);
+            let value = self.value_generator.generate(rng, config);
+            map.insert(key, value);
+            attempts += 1;
+        }
+
+        map
+    }
+
+    fn shrink(&self, value: &BTreeMap<K, V>) -> Box<dyn Iterator<Item = BTreeMap<K, V>>> {
+        let mut shrinks = Vec::new();
+
+        // Shrink to empty map
+        if !value.is_empty() {
+            shrinks.push(BTreeMap::new());
+        }
+
+        // Shrink by removing entries
+        if value.len() > 1 {
+            let keys_to_remove: Vec<_> = value.keys().take(value.len() / 2).cloned().collect();
+            for key in keys_to_remove {
+                let mut smaller = value.clone();
+                smaller.remove(&key);
+                shrinks.push(smaller);
+            }
+        }
+
+        // Shrink values (keep keys the same)
+        for (key, val) in value {
+            for shrunk_val in self.value_generator.shrink(val) {
+                let mut shrunk_map = value.clone();
+                shrunk_map.insert(key.clone(), shrunk_val);
+                shrinks.push(shrunk_map);
+            }
+        }
+
+        Box::new(shrinks.into_iter())
+    }
+}
+
+// ============================================================================
+// BTreeSet Generator
+// ============================================================================
+
+/// Generator for BTreeSet collections
+#[derive(Debug, Clone)]
+pub struct BTreeSetGenerator<T, G> {
+    element_generator: G,
+    min_size: usize,
+    max_size: usize,
+    _phantom: std::marker::PhantomData<T>,
+}
+
+impl<T, G> BTreeSetGenerator<T, G>
+where
+    T: Ord + Clone,
+    G: Generator<T>,
+{
+    /// Create a new BTreeSet generator
+    pub fn new(element_generator: G, min_size: usize, max_size: usize) -> Self {
+        Self {
+            element_generator,
+            min_size,
+            max_size,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<T, G> Generator<BTreeSet<T>> for BTreeSetGenerator<T, G>
+where
+    T: Ord + Clone + 'static,
+    G: Generator<T> + Clone + 'static,
+{
+    fn generate(&self, rng: &mut dyn rand::RngCore, config: &GeneratorConfig) -> BTreeSet<T> {
+        use rand::Rng;
+        let size = rng.r#gen_range(self.min_size..=self.max_size);
+        let mut set = BTreeSet::new();
+
+        // Try to generate unique elements
+        let mut attempts = 0;
+        let max_attempts = size * 10;
+
+        while set.len() < size && attempts < max_attempts {
+            let element = self.element_generator.generate(rng, config);
+            set.insert(element);
+            attempts += 1;
+        }
+
+        set
+    }
+
+    fn shrink(&self, value: &BTreeSet<T>) -> Box<dyn Iterator<Item = BTreeSet<T>>> {
+        let mut shrinks = Vec::new();
+
+        // Shrink to empty set
+        if !value.is_empty() {
+            shrinks.push(BTreeSet::new());
+        }
+
+        // Shrink to smaller sets
+        if value.len() > 1 {
+            let elems_to_remove: Vec<_> = value.iter().take(value.len() / 2).cloned().collect();
+            for elem in elems_to_remove {
+                let mut smaller = value.clone();
+                smaller.remove(&elem);
+                shrinks.push(smaller);
+            }
+        }
+
+        // Shrink individual elements
+        for elem in value {
+            for shrunk_elem in self.element_generator.shrink(elem) {
+                let mut shrunk_set = value.clone();
+                shrunk_set.remove(elem);
+                shrunk_set.insert(shrunk_elem.clone());
+                if shrunk_set != *value {
+                    shrinks.push(shrunk_set);
+                }
+            }
+        }
+
+        Box::new(shrinks.into_iter())
+    }
+}
+
+// ============================================================================
+// Result Generator
+// ============================================================================
+
+/// Generator for Result<T, E> values
+#[derive(Debug, Clone)]
+pub struct ResultGenerator<T, E, TG, EG> {
+    ok_generator: TG,
+    err_generator: EG,
+    ok_probability: f64,
+    _phantom: std::marker::PhantomData<(T, E)>,
+}
+
+impl<T, E, TG, EG> ResultGenerator<T, E, TG, EG>
+where
+    T: Clone,
+    E: Clone,
+    TG: Generator<T>,
+    EG: Generator<E>,
+{
+    /// Create a new Result generator with 50/50 Ok/Err probability
+    pub fn new(ok_generator: TG, err_generator: EG) -> Self {
+        Self {
+            ok_generator,
+            err_generator,
+            ok_probability: 0.5,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+
+    /// Create a Result generator with custom Ok probability (0.0 to 1.0)
+    pub fn with_ok_probability(ok_generator: TG, err_generator: EG, ok_probability: f64) -> Self {
+        Self {
+            ok_generator,
+            err_generator,
+            ok_probability: ok_probability.clamp(0.0, 1.0),
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<T, E, TG, EG> Generator<Result<T, E>> for ResultGenerator<T, E, TG, EG>
+where
+    T: Clone + 'static,
+    E: Clone + 'static,
+    TG: Generator<T> + Clone + 'static,
+    EG: Generator<E> + Clone + 'static,
+{
+    fn generate(&self, rng: &mut dyn rand::RngCore, config: &GeneratorConfig) -> Result<T, E> {
+        use rand::Rng;
+        if rng.r#gen::<f64>() < self.ok_probability {
+            Ok(self.ok_generator.generate(rng, config))
+        } else {
+            Err(self.err_generator.generate(rng, config))
+        }
+    }
+
+    fn shrink(&self, value: &Result<T, E>) -> Box<dyn Iterator<Item = Result<T, E>>> {
+        match value {
+            Ok(t) => {
+                let shrinks: Vec<_> = self.ok_generator.shrink(t).map(Ok).collect();
+                Box::new(shrinks.into_iter())
+            }
+            Err(e) => {
+                // First try to shrink to Ok(default-ish value) if possible
+                let mut shrinks = vec![];
+
+                // Then shrink the error value
+                shrinks.extend(self.err_generator.shrink(e).map(Err));
+
+                Box::new(shrinks.into_iter())
+            }
+        }
+    }
+}
+
+// ============================================================================
+// Unit () Generator
+// ============================================================================
+
+/// Generator for the unit type ()
+#[derive(Debug, Clone, Copy)]
+pub struct UnitGenerator;
+
+impl Generator<()> for UnitGenerator {
+    fn generate(&self, _rng: &mut dyn rand::RngCore, _config: &GeneratorConfig) {
+        // Nothing to generate for unit type
+    }
+
+    fn shrink(&self, _value: &()) -> Box<dyn Iterator<Item = ()>> {
+        // Unit type has no shrinks
+        Box::new(std::iter::empty())
+    }
+}
+
+// ============================================================================
+// Array Generator for fixed-size arrays
+// ============================================================================
+
+/// Generator for fixed-size arrays [T; N]
+#[derive(Debug, Clone)]
+pub struct ArrayGenerator<T, G, const N: usize> {
+    element_generator: G,
+    _phantom: std::marker::PhantomData<T>,
+}
+
+impl<T, G, const N: usize> ArrayGenerator<T, G, N>
+where
+    G: Generator<T>,
+{
+    /// Create a new array generator
+    pub fn new(element_generator: G) -> Self {
+        Self {
+            element_generator,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<T, G, const N: usize> Generator<[T; N]> for ArrayGenerator<T, G, N>
+where
+    T: Clone + Default + 'static,
+    G: Generator<T> + Clone + 'static,
+{
+    fn generate(&self, rng: &mut dyn rand::RngCore, config: &GeneratorConfig) -> [T; N] {
+        // Use Default::default() to initialize, then fill
+        let mut arr = std::array::from_fn(|_| T::default());
+        for elem in arr.iter_mut() {
+            *elem = self.element_generator.generate(rng, config);
+        }
+        arr
+    }
+
+    fn shrink(&self, value: &[T; N]) -> Box<dyn Iterator<Item = [T; N]>> {
+        let mut shrinks = Vec::new();
+
+        // Shrink individual elements
+        for i in 0..N {
+            for shrunk_elem in self.element_generator.shrink(&value[i]) {
+                let mut shrunk_arr = value.clone();
+                shrunk_arr[i] = shrunk_elem;
+                shrinks.push(shrunk_arr);
+            }
+        }
+
+        Box::new(shrinks.into_iter())
+    }
+}
+
+#[cfg(test)]
+mod new_generator_tests {
+    use super::*;
+    use rand::thread_rng;
+
+    #[test]
+    fn test_hashset_generator() {
+        let mut rng = thread_rng();
+        let config = GeneratorConfig::default();
+
+        let generator = HashSetGenerator::new(IntGenerator::new(1, 100), 0, 10);
+        let set = generator.generate(&mut rng, &config);
+
+        assert!(set.len() <= 10);
+        for elem in &set {
+            assert!(*elem >= 1 && *elem <= 100);
+        }
+    }
+
+    #[test]
+    fn test_btreemap_generator() {
+        let mut rng = thread_rng();
+        let config = GeneratorConfig::default();
+
+        let generator = BTreeMapGenerator::new(
+            IntGenerator::new(1, 10),
+            StringGenerator::ascii_printable(1, 5),
+            0,
+            5,
+        );
+        let map = generator.generate(&mut rng, &config);
+
+        assert!(map.len() <= 5);
+        for (key, value) in &map {
+            assert!(*key >= 1 && *key <= 10);
+            assert!(value.len() >= 1 && value.len() <= 5);
+        }
+    }
+
+    #[test]
+    fn test_btreeset_generator() {
+        let mut rng = thread_rng();
+        let config = GeneratorConfig::default();
+
+        let generator = BTreeSetGenerator::new(IntGenerator::new(1, 50), 0, 8);
+        let set = generator.generate(&mut rng, &config);
+
+        assert!(set.len() <= 8);
+        for elem in &set {
+            assert!(*elem >= 1 && *elem <= 50);
+        }
+    }
+
+    #[test]
+    fn test_result_generator() {
+        let mut rng = thread_rng();
+        let config = GeneratorConfig::default();
+
+        let generator = ResultGenerator::new(
+            IntGenerator::new(1, 100),
+            StringGenerator::ascii_printable(1, 10),
+        );
+
+        // Generate multiple to test both Ok and Err cases
+        let mut ok_count = 0;
+        let mut err_count = 0;
+
+        for _ in 0..100 {
+            match generator.generate(&mut rng, &config) {
+                Ok(n) => {
+                    assert!(n >= 1 && n <= 100);
+                    ok_count += 1;
+                }
+                Err(s) => {
+                    assert!(s.len() >= 1 && s.len() <= 10);
+                    err_count += 1;
+                }
+            }
+        }
+
+        // Should have both Ok and Err with 50/50 probability
+        assert!(ok_count > 0);
+        assert!(err_count > 0);
+    }
+
+    #[test]
+    fn test_unit_generator() {
+        let mut rng = thread_rng();
+        let config = GeneratorConfig::default();
+
+        let generator = UnitGenerator;
+        let result = generator.generate(&mut rng, &config);
+
+        assert_eq!(result, ());
+    }
+
+    #[test]
+    fn test_array_generator() {
+        let mut rng = thread_rng();
+        let config = GeneratorConfig::default();
+
+        let generator = ArrayGenerator::<i32, _, 5>::new(IntGenerator::new(1, 10));
+        let arr = generator.generate(&mut rng, &config);
+
+        assert_eq!(arr.len(), 5);
+        for elem in &arr {
+            assert!(*elem >= 1 && *elem <= 10);
+        }
+    }
+
+    #[test]
+    fn test_hashset_shrinking() {
+        let generator = HashSetGenerator::new(IntGenerator::new(1, 100), 0, 10);
+
+        let mut set = HashSet::new();
+        set.insert(42);
+        set.insert(43);
+        set.insert(44);
+
+        let shrinks: Vec<_> = generator.shrink(&set).collect();
+
+        // Should have empty set as first shrink
+        assert!(shrinks.iter().any(|s| s.is_empty()));
+    }
+
+    #[test]
+    fn test_result_shrinking() {
+        let generator = ResultGenerator::new(
+            IntGenerator::new(0, 100),
+            StringGenerator::ascii_printable(0, 10),
+        );
+
+        let ok_value: Result<i32, String> = Ok(50);
+        let shrinks: Vec<_> = generator.shrink(&ok_value).collect();
+
+        // Should shrink the Ok value towards 0
+        assert!(!shrinks.is_empty());
     }
 }

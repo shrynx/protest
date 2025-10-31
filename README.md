@@ -27,6 +27,7 @@ Add Protest to your `Cargo.toml`:
 ```toml
 [dev-dependencies]
 protest = { version = "0.1", features = ["derive"] }
+protest-extras = "0.1"  # Optional: Extra generators (network, datetime, text, etc.)
 ```
 
 ### Ultra-Simple Example
@@ -318,6 +319,16 @@ cargo run --example custom_structs
 cargo run --example async_properties
 ```
 
+## Feature Flags
+
+```toml
+[features]
+default = ["derive"]
+derive = ["protest-derive"]  # Derive macros
+```
+
+Protest has minimal dependencies and no required runtime dependencies. Async support is built-in and runtime-agnostic.
+
 ## Comparison with Other Libraries
 
 | Feature | Protest | proptest | quickcheck |
@@ -339,22 +350,19 @@ Full documentation is available on [docs.rs](https://docs.rs/protest).
 ### Key Modules
 
 - `protest::ergonomic` - Ergonomic API (closures, builders, patterns)
-- `protest::primitives` - Built-in generators
+- `protest::primitives` - Built-in generators (int, string, vec, hashmap, etc.)
 - `protest::generator` - Generator trait and utilities
 - `protest::property` - Property trait and execution
 - `protest::shrink` - Shrinking infrastructure
 - `protest::config` - Configuration types
 - `protest::statistics` - Coverage and statistics
 
-## Feature Flags
+### Protest Extras
 
-```toml
-[features]
-default = ["derive"]
-derive = ["protest-derive"]  # Derive macros
-```
+The [`protest-extras`](protest-extras/) crate provides 23 additional specialized generators and enhanced shrinking strategies:
 
-Protest has minimal dependencies and no required runtime dependencies. Async support is built-in and runtime-agnostic.
+See the [protest-extras README](protest-extras/README.md) for detailed examples and documentation.
+
 
 ## Contributing
 

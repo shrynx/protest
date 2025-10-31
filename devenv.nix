@@ -30,6 +30,14 @@
   };
 
   scripts = {
+    format = {
+      exec = "${pkgs.cargo}/bin/cargo fmt --all";
+    };
+
+    lint = {
+      exec = "${pkgs.cargo}/bin/cargo clippy --workspace --all-features -- -D warnings";
+    };
+
     release = {
       description = ''bump version, create tag, and push'';
       exec = ''
