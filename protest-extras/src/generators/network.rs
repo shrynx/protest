@@ -191,15 +191,15 @@ impl Generator<String> for EmailGenerator {
             }
 
             // Try to shorten domain
-            if let Some((domain_name, tld)) = domain.rsplit_once('.') {
-                if domain_name.len() > 1 {
-                    shrinks.push(format!(
-                        "{}@{}.{}",
-                        local,
-                        &domain_name[..domain_name.len() - 1],
-                        tld
-                    ));
-                }
+            if let Some((domain_name, tld)) = domain.rsplit_once('.')
+                && domain_name.len() > 1
+            {
+                shrinks.push(format!(
+                    "{}@{}.{}",
+                    local,
+                    &domain_name[..domain_name.len() - 1],
+                    tld
+                ));
             }
         }
 
@@ -352,10 +352,10 @@ impl Generator<String> for UrlGenerator {
         }
 
         // Try removing query parameters
-        if let Some(base) = value.split('?').next() {
-            if base != value {
-                shrinks.push(base.to_string());
-            }
+        if let Some(base) = value.split('?').next()
+            && base != value
+        {
+            shrinks.push(base.to_string());
         }
 
         // Try removing path
@@ -365,10 +365,9 @@ impl Generator<String> for UrlGenerator {
             .collect::<Vec<_>>()
             .join("/")
             .into()
+            && scheme_and_host != *value
         {
-            if scheme_and_host != *value {
-                shrinks.push(scheme_and_host);
-            }
+            shrinks.push(scheme_and_host);
         }
 
         Box::new(shrinks.into_iter())
@@ -382,12 +381,12 @@ mod tests {
 
     #[test]
     fn test_ipv4_generator() {
-        let gen = IpAddressGenerator::ipv4();
+        let generator = IpAddressGenerator::ipv4();
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let ip = gen.generate(&mut rng, &config);
+            let ip = generator.generate(&mut rng, &config);
             // Should parse as valid IPv4
             let parts: Vec<&str> = ip.split('.').collect();
             assert_eq!(parts.len(), 4);
@@ -400,12 +399,12 @@ mod tests {
 
     #[test]
     fn test_email_generator() {
-        let gen = EmailGenerator::new();
+        let generator = EmailGenerator::new();
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let email = gen.generate(&mut rng, &config);
+            let email = generator.generate(&mut rng, &config);
             assert!(email.contains('@'));
             assert_eq!(email.matches('@').count(), 1);
 
@@ -419,12 +418,12 @@ mod tests {
 
     #[test]
     fn test_url_generator() {
-        let gen = UrlGenerator::new();
+        let generator = UrlGenerator::new();
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let url = gen.generate(&mut rng, &config);
+            let url = generator.generate(&mut rng, &config);
             assert!(url.starts_with("http://") || url.starts_with("https://"));
         }
     }

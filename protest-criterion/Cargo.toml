@@ -11,7 +11,7 @@ categories = ["development-tools::testing", "development-tools::profiling"]
 readme = "README.md"
 
 [dependencies]
-protest = { path = "../protest", version = "0.1" }
+protest = { path = "../protest" }
 criterion = "0.5"
 rand = "0.8"
 

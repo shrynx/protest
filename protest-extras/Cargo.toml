@@ -1,18 +1,17 @@
 [package]
 name = "protest-extras"
-version = "0.1.0"
-edition = "2021"
-authors = ["Protest Contributors"]
-license = "MIT OR Apache-2.0"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
 description = "Extra generators for the Protest property testing library"
-repository = "https://github.com/yourusername/protest"
-homepage = "https://github.com/yourusername/protest"
 readme = "README.md"
 keywords = ["testing", "property-testing", "quickcheck", "generators"]
 categories = ["development-tools::testing"]
 
 [dependencies]
-protest = { path = "../protest", version = "0.1" }
+protest = { path = "../protest" }
 rand = "0.8"
 num-traits = "0.2"
 

@@ -325,11 +325,11 @@ impl Generator<String> for SentenceGenerator {
             let shrunk_words = &words[..self.min_words.max(1)];
             let mut shrunk = shrunk_words.join(" ");
             // Capitalize first letter if needed
-            if let Some(first_char) = shrunk.chars().next() {
-                if first_char.is_lowercase() {
-                    let capitalized = first_char.to_uppercase().collect::<String>() + &shrunk[1..];
-                    shrunk = capitalized;
-                }
+            if let Some(first_char) = shrunk.chars().next()
+                && first_char.is_lowercase()
+            {
+                let capitalized = first_char.to_uppercase().collect::<String>() + &shrunk[1..];
+                shrunk = capitalized;
             }
             shrunk.push('.');
             shrinks.push(shrunk);
@@ -404,12 +404,12 @@ mod tests {
 
     #[test]
     fn test_alphabetic_generator() {
-        let gen = AlphabeticGenerator::new(5, 10);
+        let generator = AlphabeticGenerator::new(5, 10);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let text = gen.generate(&mut rng, &config);
+            let text = generator.generate(&mut rng, &config);
             assert!(text.len() >= 5 && text.len() <= 10);
             assert!(text.chars().all(|c| c.is_alphabetic()));
         }
@@ -417,24 +417,24 @@ mod tests {
 
     #[test]
     fn test_alphabetic_lowercase_only() {
-        let gen = AlphabeticGenerator::lowercase(5, 10);
+        let generator = AlphabeticGenerator::lowercase(5, 10);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let text = gen.generate(&mut rng, &config);
+            let text = generator.generate(&mut rng, &config);
             assert!(text.chars().all(|c| c.is_lowercase()));
         }
     }
 
     #[test]
     fn test_alphanumeric_generator() {
-        let gen = AlphanumericGenerator::new(5, 10);
+        let generator = AlphanumericGenerator::new(5, 10);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let text = gen.generate(&mut rng, &config);
+            let text = generator.generate(&mut rng, &config);
             assert!(text.len() >= 5 && text.len() <= 10);
             assert!(text.chars().all(|c| c.is_alphanumeric()));
         }
@@ -442,12 +442,12 @@ mod tests {
 
     #[test]
     fn test_identifier_generator() {
-        let gen = IdentifierGenerator::new(3, 15);
+        let generator = IdentifierGenerator::new(3, 15);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let id = gen.generate(&mut rng, &config);
+            let id = generator.generate(&mut rng, &config);
             assert!(id.len() >= 3 && id.len() <= 15);
 
             // First char must be letter or underscore
@@ -461,12 +461,12 @@ mod tests {
 
     #[test]
     fn test_sentence_generator() {
-        let gen = SentenceGenerator::new(3, 8);
+        let generator = SentenceGenerator::new(3, 8);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let sentence = gen.generate(&mut rng, &config);
+            let sentence = generator.generate(&mut rng, &config);
 
             // Should end with period
             assert!(sentence.ends_with('.'));
@@ -482,12 +482,12 @@ mod tests {
 
     #[test]
     fn test_paragraph_generator() {
-        let gen = ParagraphGenerator::new(2, 5);
+        let generator = ParagraphGenerator::new(2, 5);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..5 {
-            let paragraph = gen.generate(&mut rng, &config);
+            let paragraph = generator.generate(&mut rng, &config);
 
             // Should contain multiple periods
             let period_count = paragraph.matches('.').count();

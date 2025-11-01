@@ -334,12 +334,12 @@ mod tests {
 
     #[test]
     fn test_non_empty_vec_generator() {
-        let gen = NonEmptyVecGenerator::new(IntGenerator::new(1, 100), 1, 10);
+        let generator = NonEmptyVecGenerator::new(IntGenerator::new(1, 100), 1, 10);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let vec = gen.generate(&mut rng, &config);
+            let vec = generator.generate(&mut rng, &config);
             assert!(!vec.is_empty(), "Vec should not be empty");
             assert!(!vec.is_empty() && vec.len() <= 10);
             for &elem in &vec {
@@ -351,24 +351,24 @@ mod tests {
     #[test]
     fn test_non_empty_vec_min_size() {
         // Even with min_len = 0, should have at least 1 element
-        let gen = NonEmptyVecGenerator::new(IntGenerator::new(1, 100), 0, 5);
+        let generator = NonEmptyVecGenerator::new(IntGenerator::new(1, 100), 0, 5);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let vec = gen.generate(&mut rng, &config);
+            let vec = generator.generate(&mut rng, &config);
             assert!(!vec.is_empty());
         }
     }
 
     #[test]
     fn test_sorted_vec_generator() {
-        let gen = SortedVecGenerator::new(IntGenerator::new(1, 100), 3, 10);
+        let generator = SortedVecGenerator::new(IntGenerator::new(1, 100), 3, 10);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let vec = gen.generate(&mut rng, &config);
+            let vec = generator.generate(&mut rng, &config);
             assert!(vec.len() >= 3 && vec.len() <= 10);
 
             // Check if sorted
@@ -380,12 +380,12 @@ mod tests {
 
     #[test]
     fn test_unique_vec_generator() {
-        let gen = UniqueVecGenerator::new(IntGenerator::new(1, 50), 3, 10);
+        let generator = UniqueVecGenerator::new(IntGenerator::new(1, 50), 3, 10);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let vec = gen.generate(&mut rng, &config);
+            let vec = generator.generate(&mut rng, &config);
             assert!(vec.len() >= 3 && vec.len() <= 10);
 
             // Check for uniqueness
@@ -398,13 +398,13 @@ mod tests {
 
     #[test]
     fn test_bounded_map_generator() {
-        let gen =
+        let generator =
             BoundedMapGenerator::new(IntGenerator::new(1, 100), IntGenerator::new(1, 100), 2, 8);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let map = gen.generate(&mut rng, &config);
+            let map = generator.generate(&mut rng, &config);
             assert!(map.len() >= 2 && map.len() <= 8);
 
             for (key, value) in &map {

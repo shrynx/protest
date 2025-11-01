@@ -382,8 +382,10 @@ mod tests {
 
     #[test]
     fn test_property_failing_case() {
+        // Use a seed that will generate a value >= 50 to ensure test fails reliably
         let result = property(|x: i32| x < 50)
-            .iterations(10)
+            .iterations(100) // Increased iterations to make failure highly probable
+            .seed(42) // Use fixed seed for determinism
             .run_with(IntGenerator::new(1, 100));
         assert!(result.is_err());
     }

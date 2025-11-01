@@ -10,7 +10,7 @@
 
 use protest::{Generator, GeneratorConfig};
 use rand::Rng;
-use std::path::{PathBuf, MAIN_SEPARATOR};
+use std::path::{MAIN_SEPARATOR, PathBuf};
 
 // ============================================================================
 // Hex Generator
@@ -341,11 +341,22 @@ impl UuidV4Generator {
     fn format_uuid(bytes: [u8; 16]) -> String {
         format!(
             "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
-            bytes[0], bytes[1], bytes[2], bytes[3],
-            bytes[4], bytes[5],
-            bytes[6], bytes[7],
-            bytes[8], bytes[9],
-            bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
+            bytes[0],
+            bytes[1],
+            bytes[2],
+            bytes[3],
+            bytes[4],
+            bytes[5],
+            bytes[6],
+            bytes[7],
+            bytes[8],
+            bytes[9],
+            bytes[10],
+            bytes[11],
+            bytes[12],
+            bytes[13],
+            bytes[14],
+            bytes[15]
         )
     }
 }
@@ -382,12 +393,12 @@ mod tests {
 
     #[test]
     fn test_hex_generator() {
-        let gen = HexGenerator::new(8, 16);
+        let generator = HexGenerator::new(8, 16);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let hex = gen.generate(&mut rng, &config);
+            let hex = generator.generate(&mut rng, &config);
             assert!(hex.len() >= 8 && hex.len() <= 16);
             assert!(hex.chars().all(|c| c.is_ascii_hexdigit()));
             assert!(hex.chars().all(|c| !c.is_uppercase()));
@@ -396,12 +407,12 @@ mod tests {
 
     #[test]
     fn test_hex_generator_uppercase() {
-        let gen = HexGenerator::uppercase(8, 16);
+        let generator = HexGenerator::uppercase(8, 16);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let hex = gen.generate(&mut rng, &config);
+            let hex = generator.generate(&mut rng, &config);
             assert!(hex.chars().all(|c| c.is_ascii_hexdigit()));
             // Check that if there are letters, they're uppercase
             for c in hex.chars() {
@@ -414,12 +425,12 @@ mod tests {
 
     #[test]
     fn test_base64_generator() {
-        let gen = Base64Generator::new(6, 32);
+        let generator = Base64Generator::new(6, 32);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let b64 = gen.generate(&mut rng, &config);
+            let b64 = generator.generate(&mut rng, &config);
             assert!(!b64.is_empty());
 
             // Check valid Base64 characters
@@ -453,12 +464,12 @@ mod tests {
 
     #[test]
     fn test_path_generator() {
-        let gen = PathGenerator::new(1, 4);
+        let generator = PathGenerator::new(1, 4);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let path = gen.generate(&mut rng, &config);
+            let path = generator.generate(&mut rng, &config);
             let components: Vec<_> = path.components().collect();
             assert!(!components.is_empty() && components.len() <= 4);
 
@@ -473,24 +484,24 @@ mod tests {
 
     #[test]
     fn test_path_generator_absolute() {
-        let gen = PathGenerator::absolute(2, 4);
+        let generator = PathGenerator::absolute(2, 4);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let path = gen.generate(&mut rng, &config);
+            let path = generator.generate(&mut rng, &config);
             assert!(path.is_absolute());
         }
     }
 
     #[test]
     fn test_uuid_v4_generator() {
-        let gen = UuidV4Generator::new();
+        let generator = UuidV4Generator::new();
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let uuid = gen.generate(&mut rng, &config);
+            let uuid = generator.generate(&mut rng, &config);
 
             // Check format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
             let parts: Vec<&str> = uuid.split('-').collect();
@@ -522,13 +533,13 @@ mod tests {
     #[test]
     fn test_uuid_v4_uniqueness() {
         // Generate multiple UUIDs and ensure they're unique
-        let gen = UuidV4Generator::new();
+        let generator = UuidV4Generator::new();
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         let mut uuids = std::collections::HashSet::new();
         for _ in 0..100 {
-            let uuid = gen.generate(&mut rng, &config);
+            let uuid = generator.generate(&mut rng, &config);
             assert!(uuids.insert(uuid), "Generated duplicate UUID");
         }
     }

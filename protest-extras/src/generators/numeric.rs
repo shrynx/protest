@@ -329,12 +329,12 @@ mod tests {
 
     #[test]
     fn test_positive_int_generator() {
-        let gen = PositiveIntGenerator::new(1u32, 100u32);
+        let generator = PositiveIntGenerator::new(1u32, 100u32);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..20 {
-            let n = gen.generate(&mut rng, &config);
+            let n = generator.generate(&mut rng, &config);
             assert!((1..=100).contains(&n));
             assert!(n > 0);
         }
@@ -342,12 +342,12 @@ mod tests {
 
     #[test]
     fn test_even_number_generator() {
-        let gen = EvenNumberGenerator::new(0i32, 100i32);
+        let generator = EvenNumberGenerator::new(0i32, 100i32);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..20 {
-            let n = gen.generate(&mut rng, &config);
+            let n = generator.generate(&mut rng, &config);
             assert!((0..=100).contains(&n));
             assert_eq!(n % 2, 0, "Generated number {} should be even", n);
         }
@@ -356,12 +356,12 @@ mod tests {
     #[test]
     fn test_even_number_generator_odd_bounds() {
         // Test that odd bounds get adjusted correctly
-        let gen = EvenNumberGenerator::new(1i32, 99i32);
+        let generator = EvenNumberGenerator::new(1i32, 99i32);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..20 {
-            let n = gen.generate(&mut rng, &config);
+            let n = generator.generate(&mut rng, &config);
             assert!((2..=98).contains(&n)); // Adjusted to 2..98
             assert_eq!(n % 2, 0);
         }
@@ -369,12 +369,12 @@ mod tests {
 
     #[test]
     fn test_prime_number_generator() {
-        let gen = PrimeNumberGenerator::new(2, 50);
+        let generator = PrimeNumberGenerator::new(2, 50);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..20 {
-            let n = gen.generate(&mut rng, &config);
+            let n = generator.generate(&mut rng, &config);
             assert!((2..=50).contains(&n));
             assert!(PrimeNumberGenerator::is_prime(n));
         }
@@ -401,24 +401,24 @@ mod tests {
 
     #[test]
     fn test_percentage_generator() {
-        let gen = PercentageGenerator::new();
+        let generator = PercentageGenerator::new();
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..20 {
-            let p = gen.generate(&mut rng, &config);
+            let p = generator.generate(&mut rng, &config);
             assert!((0.0..=100.0).contains(&p));
         }
     }
 
     #[test]
     fn test_percentage_generator_positive() {
-        let gen = PercentageGenerator::positive();
+        let generator = PercentageGenerator::positive();
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..20 {
-            let p = gen.generate(&mut rng, &config);
+            let p = generator.generate(&mut rng, &config);
             assert!(p > 0.0 && p <= 100.0);
         }
     }

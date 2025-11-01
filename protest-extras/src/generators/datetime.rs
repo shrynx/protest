@@ -250,19 +250,19 @@ mod tests {
 
     #[test]
     fn test_timestamp_generator() {
-        let gen = TimestampGenerator::new(0, 1_000_000);
+        let generator = TimestampGenerator::new(0, 1_000_000);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let ts = gen.generate(&mut rng, &config);
+            let ts = generator.generate(&mut rng, &config);
             assert!((0..=1_000_000).contains(&ts));
         }
     }
 
     #[test]
     fn test_timestamp_recent() {
-        let gen = TimestampGenerator::recent();
+        let generator = TimestampGenerator::recent();
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
@@ -272,7 +272,7 @@ mod tests {
             .as_secs() as i64;
 
         for _ in 0..10 {
-            let ts = gen.generate(&mut rng, &config);
+            let ts = generator.generate(&mut rng, &config);
             assert!(ts <= now);
             assert!(ts >= now - (10 * 365 * 24 * 60 * 60));
         }
@@ -280,12 +280,12 @@ mod tests {
 
     #[test]
     fn test_duration_generator() {
-        let gen = DurationGenerator::new(0, 100);
+        let generator = DurationGenerator::new(0, 100);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let dur = gen.generate(&mut rng, &config);
+            let dur = generator.generate(&mut rng, &config);
             assert!(dur.as_secs() <= 100);
         }
     }
@@ -295,24 +295,24 @@ mod tests {
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
-        let gen = DurationGenerator::seconds();
-        let dur = gen.generate(&mut rng, &config);
+        let generator = DurationGenerator::seconds();
+        let dur = generator.generate(&mut rng, &config);
         assert!(dur.as_secs() <= 60);
 
-        let gen = DurationGenerator::minutes();
-        let dur = gen.generate(&mut rng, &config);
+        let generator = DurationGenerator::minutes();
+        let dur = generator.generate(&mut rng, &config);
         assert!(dur.as_secs() <= 3600);
     }
 
     #[test]
     fn test_system_time_generator() {
         let start = UNIX_EPOCH;
-        let gen = SystemTimeGenerator::new(start, 1_000_000);
+        let generator = SystemTimeGenerator::new(start, 1_000_000);
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         for _ in 0..10 {
-            let time = gen.generate(&mut rng, &config);
+            let time = generator.generate(&mut rng, &config);
             assert!(time >= start);
 
             let duration = time.duration_since(start).unwrap();
@@ -322,14 +322,14 @@ mod tests {
 
     #[test]
     fn test_system_time_around_now() {
-        let gen = SystemTimeGenerator::around_now();
+        let generator = SystemTimeGenerator::around_now();
         let mut rng = thread_rng();
         let config = GeneratorConfig::default();
 
         let now = SystemTime::now();
 
         for _ in 0..10 {
-            let time = gen.generate(&mut rng, &config);
+            let time = generator.generate(&mut rng, &config);
 
             // Should be within reasonable range of now
             // (allowing for test execution time)

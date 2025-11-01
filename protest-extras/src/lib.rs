@@ -27,6 +27,7 @@
 //! use protest::Generator;
 //! use rand::thread_rng;
 //!
+//! # fn main() {
 //! let mut rng = thread_rng();
 //! let config = protest::GeneratorConfig::default();
 //!
@@ -44,6 +45,7 @@
 //! let uuid_gen = UuidV4Generator::new();
 //! let uuid = uuid_gen.generate(&mut rng, &config);
 //! assert_eq!(uuid.len(), 36); // UUID format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+//! # }
 //! ```
 //!
 //! ## Examples by Category
@@ -55,29 +57,31 @@
 //! use protest::Generator;
 //! use rand::thread_rng;
 //!
+//! # fn main() {
 //! let mut rng = thread_rng();
 //! let config = protest::GeneratorConfig::default();
 //!
 //! // Generate IPv4 addresses
-//! let gen = IpAddressGenerator::ipv4();
-//! let ip = gen.generate(&mut rng, &config);
+//! let generator = IpAddressGenerator::ipv4();
+//! let ip = generator.generate(&mut rng, &config);
 //! let parts: Vec<&str> = ip.split('.').collect();
 //! assert_eq!(parts.len(), 4);
 //!
 //! // Generate IPv6 addresses
-//! let gen = IpAddressGenerator::ipv6();
-//! let ip = gen.generate(&mut rng, &config);
+//! let generator = IpAddressGenerator::ipv6();
+//! let ip = generator.generate(&mut rng, &config);
 //! assert!(ip.contains(':'));
 //!
 //! // Generate email addresses
-//! let gen = EmailGenerator::new();
-//! let email = gen.generate(&mut rng, &config);
+//! let generator = EmailGenerator::new();
+//! let email = generator.generate(&mut rng, &config);
 //! assert_eq!(email.matches('@').count(), 1);
 //!
 //! // Generate URLs
-//! let gen = UrlGenerator::new();
-//! let url = gen.generate(&mut rng, &config);
+//! let generator = UrlGenerator::new();
+//! let url = generator.generate(&mut rng, &config);
 //! assert!(url.starts_with("http://") || url.starts_with("https://"));
+//! # }
 //! ```
 //!
 //! ### DateTime Generators
@@ -88,12 +92,13 @@
 //! use rand::thread_rng;
 //! use std::time::{SystemTime, UNIX_EPOCH};
 //!
+//! # fn main() {
 //! let mut rng = thread_rng();
 //! let config = protest::GeneratorConfig::default();
 //!
 //! // Generate recent Unix timestamps
-//! let gen = TimestampGenerator::recent();
-//! let timestamp = gen.generate(&mut rng, &config);
+//! let generator = TimestampGenerator::recent();
+//! let timestamp = generator.generate(&mut rng, &config);
 //! let now = SystemTime::now()
 //!     .duration_since(UNIX_EPOCH)
 //!     .unwrap()
@@ -101,15 +106,16 @@
 //! assert!(timestamp <= now);
 //!
 //! // Generate durations
-//! let gen = DurationGenerator::seconds();
-//! let duration = gen.generate(&mut rng, &config);
+//! let generator = DurationGenerator::seconds();
+//! let duration = generator.generate(&mut rng, &config);
 //! assert!(duration.as_secs() <= 60);
 //!
 //! // Generate system times around now
-//! let gen = SystemTimeGenerator::around_now();
-//! let time = gen.generate(&mut rng, &config);
+//! let generator = SystemTimeGenerator::around_now();
+//! let time = generator.generate(&mut rng, &config);
 //! // Time should be valid
 //! assert!(time.duration_since(UNIX_EPOCH).is_ok());
+//! # }
 //! ```
 //!
 //! ### Text Generators
@@ -119,25 +125,27 @@
 //! use protest::Generator;
 //! use rand::thread_rng;
 //!
+//! # fn main() {
 //! let mut rng = thread_rng();
 //! let config = protest::GeneratorConfig::default();
 //!
 //! // Generate lowercase alphabetic strings
-//! let gen = AlphabeticGenerator::lowercase(5, 10);
-//! let text = gen.generate(&mut rng, &config);
+//! let generator = AlphabeticGenerator::lowercase(5, 10);
+//! let text = generator.generate(&mut rng, &config);
 //! assert!(text.len() >= 5 && text.len() <= 10);
 //! assert!(text.chars().all(|c| c.is_lowercase()));
 //!
 //! // Generate valid identifiers
-//! let gen = IdentifierGenerator::new(3, 15);
-//! let id = gen.generate(&mut rng, &config);
+//! let generator = IdentifierGenerator::new(3, 15);
+//! let id = generator.generate(&mut rng, &config);
 //! assert!(id.chars().next().unwrap().is_alphabetic() || id.chars().next().unwrap() == '_');
 //! assert!(id.chars().all(|c| c.is_alphanumeric() || c == '_'));
 //!
 //! // Generate sentences
-//! let gen = SentenceGenerator::new(3, 10);
-//! let sentence = gen.generate(&mut rng, &config);
+//! let generator = SentenceGenerator::new(3, 10);
+//! let sentence = generator.generate(&mut rng, &config);
 //! assert!(sentence.ends_with('.'));
+//! # }
 //! ```
 //!
 //! ### Collection Generators
@@ -147,27 +155,29 @@
 //! use protest::{Generator, IntGenerator};
 //! use rand::thread_rng;
 //!
+//! # fn main() {
 //! let mut rng = thread_rng();
 //! let config = protest::GeneratorConfig::default();
 //!
 //! // Generate non-empty vectors
-//! let gen = NonEmptyVecGenerator::new(IntGenerator::new(0, 100), 1, 10);
-//! let vec = gen.generate(&mut rng, &config);
+//! let generator = NonEmptyVecGenerator::new(IntGenerator::new(0, 100), 1, 10);
+//! let vec = generator.generate(&mut rng, &config);
 //! assert!(!vec.is_empty());
 //! assert!(vec.len() <= 10);
 //!
 //! // Generate sorted vectors
-//! let gen = SortedVecGenerator::new(IntGenerator::new(0, 100), 0, 20);
-//! let vec = gen.generate(&mut rng, &config);
+//! let generator = SortedVecGenerator::new(IntGenerator::new(0, 100), 0, 20);
+//! let vec = generator.generate(&mut rng, &config);
 //! for window in vec.windows(2) {
 //!     assert!(window[0] <= window[1]);
 //! }
 //!
 //! // Generate vectors with unique elements
-//! let gen = UniqueVecGenerator::new(IntGenerator::new(0, 1000), 5, 20);
-//! let vec = gen.generate(&mut rng, &config);
+//! let generator = UniqueVecGenerator::new(IntGenerator::new(0, 1000), 5, 20);
+//! let vec = generator.generate(&mut rng, &config);
 //! let unique_count = vec.iter().collect::<std::collections::HashSet<_>>().len();
 //! assert_eq!(unique_count, vec.len());
+//! # }
 //! ```
 //!
 //! ### Numeric Generators
@@ -177,28 +187,30 @@
 //! use protest::Generator;
 //! use rand::thread_rng;
 //!
+//! # fn main() {
 //! let mut rng = thread_rng();
 //! let config = protest::GeneratorConfig::default();
 //!
 //! // Generate positive integers
-//! let gen = PositiveIntGenerator::<u32>::new(1, 1000);
-//! let n = gen.generate(&mut rng, &config);
+//! let generator = PositiveIntGenerator::<u32>::new(1, 1000);
+//! let n = generator.generate(&mut rng, &config);
 //! assert!(n >= 1 && n <= 1000);
 //!
 //! // Generate even numbers
-//! let gen = EvenNumberGenerator::new(0i32, 100i32);
-//! let n = gen.generate(&mut rng, &config);
+//! let generator = EvenNumberGenerator::new(0i32, 100i32);
+//! let n = generator.generate(&mut rng, &config);
 //! assert_eq!(n % 2, 0);
 //!
 //! // Generate prime numbers
-//! let gen = PrimeNumberGenerator::new(2, 100);
-//! let n = gen.generate(&mut rng, &config);
+//! let generator = PrimeNumberGenerator::new(2, 100);
+//! let n = generator.generate(&mut rng, &config);
 //! assert!(n >= 2);
 //!
 //! // Generate percentages
-//! let gen = PercentageGenerator::new();
-//! let p = gen.generate(&mut rng, &config);
+//! let generator = PercentageGenerator::new();
+//! let p = generator.generate(&mut rng, &config);
 //! assert!(p >= 0.0 && p <= 100.0);
+//! # }
 //! ```
 //!
 //! ### Domain Generators
@@ -208,30 +220,32 @@
 //! use protest::Generator;
 //! use rand::thread_rng;
 //!
+//! # fn main() {
 //! let mut rng = thread_rng();
 //! let config = protest::GeneratorConfig::default();
 //!
 //! // Generate hexadecimal strings
-//! let gen = HexGenerator::new(8, 16);
-//! let hex = gen.generate(&mut rng, &config);
+//! let generator = HexGenerator::new(8, 16);
+//! let hex = generator.generate(&mut rng, &config);
 //! assert!(hex.chars().all(|c| c.is_ascii_hexdigit()));
 //!
 //! // Generate Base64 strings
-//! let gen = Base64Generator::new(6, 32);
-//! let b64 = gen.generate(&mut rng, &config);
+//! let generator = Base64Generator::new(6, 32);
+//! let b64 = generator.generate(&mut rng, &config);
 //! assert!(!b64.is_empty());
 //!
 //! // Generate file paths
-//! let gen = PathGenerator::new(1, 4);
-//! let path = gen.generate(&mut rng, &config);
+//! let generator = PathGenerator::new(1, 4);
+//! let path = generator.generate(&mut rng, &config);
 //! assert!(path.components().count() >= 1);
 //!
 //! // Generate UUID v4
-//! let gen = UuidV4Generator::new();
-//! let uuid = gen.generate(&mut rng, &config);
+//! let generator = UuidV4Generator::new();
+//! let uuid = generator.generate(&mut rng, &config);
 //! let parts: Vec<&str> = uuid.split('-').collect();
 //! assert_eq!(parts.len(), 5);
 //! assert_eq!(parts[2].chars().next().unwrap(), '4'); // Version 4
+//! # }
 //! ```
 
 // Re-export protest for convenience
