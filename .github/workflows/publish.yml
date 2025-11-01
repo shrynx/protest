@@ -61,88 +61,182 @@ jobs:
 
       - name: Publish protest-derive to crates.io
         run: |
-          cd protest-derive
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          VERSION=$(grep '^version' protest-derive/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          if curl -s "https://crates.io/api/v1/crates/protest-derive/$VERSION" | grep -q '"version"'; then
+            echo "protest-derive $VERSION already exists on crates.io, skipping"
+          else
+            cd protest-derive
+            cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+            echo "Published protest-derive $VERSION, waiting for it to be available..."
+            # Wait for the package to be available on crates.io
+            for i in {1..30}; do
+              if curl -s "https://crates.io/api/v1/crates/protest-derive/$VERSION" | grep -q '"version"'; then
+                echo "protest-derive $VERSION is now available"
+                break
+              fi
+              sleep 2
+            done
+          fi
         continue-on-error: false
-
-      # Wait a bit for protest-derive to be available on crates.io
-      - name: Wait for protest-derive to be available
-        run: sleep 30
 
       - name: Publish protest to crates.io
         run: |
-          cd protest
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          VERSION=$(grep '^version' protest/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          if curl -s "https://crates.io/api/v1/crates/protest/$VERSION" | grep -q '"version"'; then
+            echo "protest $VERSION already exists on crates.io, skipping"
+          else
+            cd protest
+            cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+            echo "Published protest $VERSION, waiting for it to be available..."
+            # Wait for the package to be available on crates.io
+            for i in {1..30}; do
+              if curl -s "https://crates.io/api/v1/crates/protest/$VERSION" | grep -q '"version"'; then
+                echo "protest $VERSION is now available"
+                break
+              fi
+              sleep 2
+            done
+          fi
         continue-on-error: false
-
-      # Wait a bit for protest to be available on crates.io
-      - name: Wait for protest to be available
-        run: sleep 30
 
       - name: Publish protest-extras to crates.io
         run: |
-          cd protest-extras
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          VERSION=$(grep '^version' protest-extras/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          if curl -s "https://crates.io/api/v1/crates/protest-extras/$VERSION" | grep -q '"version"'; then
+            echo "protest-extras $VERSION already exists on crates.io, skipping"
+          else
+            cd protest-extras
+            cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+            echo "Published protest-extras $VERSION, waiting for it to be available..."
+            # Wait for the package to be available on crates.io
+            for i in {1..30}; do
+              if curl -s "https://crates.io/api/v1/crates/protest-extras/$VERSION" | grep -q '"version"'; then
+                echo "protest-extras $VERSION is now available"
+                break
+              fi
+              sleep 2
+            done
+          fi
         continue-on-error: false
-
-      # Wait a bit for protest-extras to be available on crates.io
-      - name: Wait for protest-extras to be available
-        run: sleep 30
 
       - name: Publish protest-cli to crates.io
         run: |
-          cd protest-cli
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          VERSION=$(grep '^version' protest-cli/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          if curl -s "https://crates.io/api/v1/crates/protest-cli/$VERSION" | grep -q '"version"'; then
+            echo "protest-cli $VERSION already exists on crates.io, skipping"
+          else
+            cd protest-cli
+            cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+            echo "Published protest-cli $VERSION, waiting for it to be available..."
+            # Wait for the package to be available on crates.io
+            for i in {1..30}; do
+              if curl -s "https://crates.io/api/v1/crates/protest-cli/$VERSION" | grep -q '"version"'; then
+                echo "protest-cli $VERSION is now available"
+                break
+              fi
+              sleep 2
+            done
+          fi
         continue-on-error: false
-
-      # Wait a bit for protest-cli to be available on crates.io
-      - name: Wait for protest-cli to be available
-        run: sleep 30
 
       - name: Publish protest-stateful to crates.io
         run: |
-          cd protest-stateful
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          VERSION=$(grep '^version' protest-stateful/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          if curl -s "https://crates.io/api/v1/crates/protest-stateful/$VERSION" | grep -q '"version"'; then
+            echo "protest-stateful $VERSION already exists on crates.io, skipping"
+          else
+            cd protest-stateful
+            cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+            echo "Published protest-stateful $VERSION, waiting for it to be available..."
+            # Wait for the package to be available on crates.io
+            for i in {1..30}; do
+              if curl -s "https://crates.io/api/v1/crates/protest-stateful/$VERSION" | grep -q '"version"'; then
+                echo "protest-stateful $VERSION is now available"
+                break
+              fi
+              sleep 2
+            done
+          fi
         continue-on-error: false
-
-      # Wait a bit for protest-stateful to be available on crates.io
-      - name: Wait for protest-stateful to be available
-        run: sleep 30
 
       - name: Publish protest-stateful-derive to crates.io
         run: |
-          cd protest-stateful-derive
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          VERSION=$(grep '^version' protest-stateful-derive/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          if curl -s "https://crates.io/api/v1/crates/protest-stateful-derive/$VERSION" | grep -q '"version"'; then
+            echo "protest-stateful-derive $VERSION already exists on crates.io, skipping"
+          else
+            cd protest-stateful-derive
+            cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+            echo "Published protest-stateful-derive $VERSION, waiting for it to be available..."
+            # Wait for the package to be available on crates.io
+            for i in {1..30}; do
+              if curl -s "https://crates.io/api/v1/crates/protest-stateful-derive/$VERSION" | grep -q '"version"'; then
+                echo "protest-stateful-derive $VERSION is now available"
+                break
+              fi
+              sleep 2
+            done
+          fi
         continue-on-error: false
-
-      # Wait a bit for protest-stateful-derive to be available on crates.io
-      - name: Wait for protest-stateful-derive to be available
-        run: sleep 30
 
       - name: Publish protest-criterion to crates.io
         run: |
-          cd protest-criterion
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          VERSION=$(grep '^version' protest-criterion/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          if curl -s "https://crates.io/api/v1/crates/protest-criterion/$VERSION" | grep -q '"version"'; then
+            echo "protest-criterion $VERSION already exists on crates.io, skipping"
+          else
+            cd protest-criterion
+            cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+            echo "Published protest-criterion $VERSION, waiting for it to be available..."
+            # Wait for the package to be available on crates.io
+            for i in {1..30}; do
+              if curl -s "https://crates.io/api/v1/crates/protest-criterion/$VERSION" | grep -q '"version"'; then
+                echo "protest-criterion $VERSION is now available"
+                break
+              fi
+              sleep 2
+            done
+          fi
         continue-on-error: false
-
-      # Wait a bit for protest-criterion to be available on crates.io
-      - name: Wait for protest-criterion to be available
-        run: sleep 30
 
       - name: Publish protest-insta to crates.io
         run: |
-          cd protest-insta
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          VERSION=$(grep '^version' protest-insta/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          if curl -s "https://crates.io/api/v1/crates/protest-insta/$VERSION" | grep -q '"version"'; then
+            echo "protest-insta $VERSION already exists on crates.io, skipping"
+          else
+            cd protest-insta
+            cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+            echo "Published protest-insta $VERSION, waiting for it to be available..."
+            # Wait for the package to be available on crates.io
+            for i in {1..30}; do
+              if curl -s "https://crates.io/api/v1/crates/protest-insta/$VERSION" | grep -q '"version"'; then
+                echo "protest-insta $VERSION is now available"
+                break
+              fi
+              sleep 2
+            done
+          fi
         continue-on-error: false
-
-      # Wait a bit for protest-insta to be available on crates.io
-      - name: Wait for protest-insta to be available
-        run: sleep 30
 
       - name: Publish protest-proptest-compat to crates.io
         run: |
-          cd protest-proptest-compat
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          VERSION=$(grep '^version' protest-proptest-compat/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          if curl -s "https://crates.io/api/v1/crates/protest-proptest-compat/$VERSION" | grep -q '"version"'; then
+            echo "protest-proptest-compat $VERSION already exists on crates.io, skipping"
+          else
+            cd protest-proptest-compat
+            cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+            echo "Published protest-proptest-compat $VERSION, waiting for it to be available..."
+            # Wait for the package to be available on crates.io
+            for i in {1..30}; do
+              if curl -s "https://crates.io/api/v1/crates/protest-proptest-compat/$VERSION" | grep -q '"version"'; then
+                echo "protest-proptest-compat $VERSION is now available"
+                break
+              fi
+              sleep 2
+            done
+          fi
         continue-on-error: false
 
       - name: Extract version from tag

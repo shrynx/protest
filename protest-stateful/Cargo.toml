@@ -11,8 +11,8 @@ categories = ["development-tools::testing"]
 readme = "README.md"
 
 [dependencies]
-protest = { path = "../protest" }
-protest-stateful-derive = { path = "../protest-stateful-derive" }
+protest = { workspace = true }
+protest-stateful-derive = { workspace = true }
 rand = "0.8"
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
