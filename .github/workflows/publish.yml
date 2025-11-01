@@ -135,6 +135,16 @@ jobs:
           cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
         continue-on-error: false
 
+      # Wait a bit for protest-insta to be available on crates.io
+      - name: Wait for protest-insta to be available
+        run: sleep 30
+
+      - name: Publish protest-proptest-compat to crates.io
+        run: |
+          cd protest-proptest-compat
+          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: false
+
       - name: Extract version from tag
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
@@ -155,15 +165,17 @@ jobs:
             - [`protest-stateful-derive` v${{ steps.version.outputs.version }}](https://crates.io/crates/protest-stateful-derive/${{ steps.version.outputs.version }})
             - [`protest-criterion` v${{ steps.version.outputs.version }}](https://crates.io/crates/protest-criterion/${{ steps.version.outputs.version }})
             - [`protest-insta` v${{ steps.version.outputs.version }}](https://crates.io/crates/protest-insta/${{ steps.version.outputs.version }})
+            - [`protest-proptest-compat` v${{ steps.version.outputs.version }}](https://crates.io/crates/protest-proptest-compat/${{ steps.version.outputs.version }})
 
             ### Installation
             ```toml
             [dev-dependencies]
             protest = { version = "${{ steps.version.outputs.version }}", features = ["derive"] }
-            protest-extras = "${{ steps.version.outputs.version }}"          # Optional: Extra generators
-            protest-stateful = "${{ steps.version.outputs.version }}"        # Optional: Stateful testing
-            protest-criterion = "${{ steps.version.outputs.version }}"       # Optional: Property-based benchmarking
-            protest-insta = "${{ steps.version.outputs.version }}"           # Optional: Snapshot testing
+            protest-extras = "${{ steps.version.outputs.version }}"               # Optional: Extra generators
+            protest-stateful = "${{ steps.version.outputs.version }}"             # Optional: Stateful testing
+            protest-criterion = "${{ steps.version.outputs.version }}"            # Optional: Property-based benchmarking
+            protest-insta = "${{ steps.version.outputs.version }}"                # Optional: Snapshot testing
+            protest-proptest-compat = "${{ steps.version.outputs.version }}"      # Optional: Migration from proptest
 
             [dependencies]
             # For derive macros in stateful testing

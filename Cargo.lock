@@ -834,6 +834,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "protest-proptest-compat"
+version = "0.1.0"
+dependencies = [
+ "num-traits",
+ "protest",
+ "rand",
+]
+
+[[package]]
 name = "protest-stateful"
 version = "0.1.0"
 dependencies = [

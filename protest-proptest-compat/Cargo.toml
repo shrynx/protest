@@ -1,0 +1,17 @@
+[package]
+name = "protest-proptest-compat"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Proptest compatibility layer for Protest - drop-in replacement for easy migration"
+keywords = ["testing", "property-testing", "proptest", "migration", "quickcheck"]
+categories = ["development-tools::testing"]
+
+[dependencies]
+protest = { path = "../protest" }
+rand = { workspace = true }
+num-traits = { workspace = true }
+
+[dev-dependencies]

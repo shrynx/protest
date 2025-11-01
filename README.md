@@ -33,6 +33,7 @@ protest-extras = "0.1"       # Optional: Extra generators (network, datetime, te
 protest-stateful = "0.1"     # Optional: Stateful property testing for state machines
 protest-criterion = "0.1"    # Optional: Property-based benchmarking with Criterion
 protest-insta = "0.1"        # Optional: Snapshot testing integration with Insta
+protest-proptest-compat = "0.1"  # Optional: Migration helpers from proptest
 ```
 
 **CLI Tool** (optional, for managing test failures):
@@ -837,10 +838,66 @@ fn test_report_snapshots() {
 ```toml
 [dev-dependencies]
 protest-insta = "0.1"
+protest-proptest-compat = "0.1"  # Optional: Migration helpers from proptest
 insta = { version = "1.41", features = ["json", "yaml"] }
 ```
 
 See the [protest-insta README](protest-insta/README.md) for comprehensive documentation and examples.
+
+
+## Migrating from Proptest
+
+**protest-proptest-compat** provides helpers and guidance for migrating from proptest.
+
+Easily transition your tests from proptest to Protest with migration helpers and side-by-side examples:
+
+### Before (Proptest)
+```rust
+use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn test_addition(a in 0..100i32, b in 0..100i32) {
+        assert!(a + b >= a);
+        assert!(a + b >= b);
+    }
+}
+```
+
+### After (Protest)
+```rust
+use protest::*;
+
+#[test]
+fn test_addition() {
+    property!(generator!(i32, 0, 100), |(a, b)| {
+        a + b >= a && a + b >= b
+    });
+}
+```
+
+**Migration helpers:**
+```rust
+use protest_proptest_compat::{range_to_generator, vec_generator, option_generator};
+use protest::primitives::IntGenerator;
+
+// Convert ranges
+let int_gen = range_to_generator(0, 100);
+
+// Create vector generators
+let vec_gen = vec_generator(IntGenerator::new(0, 10), 5, 10);
+
+// Create option generators
+let opt_gen = option_generator(IntGenerator::new(0, 100), 0.5);
+```
+
+**Install:**
+```toml
+[dev-dependencies]
+protest-proptest-compat = "0.1"
+```
+
+See the [protest-proptest-compat README](protest-proptest-compat/README.md) for the complete migration guide, common patterns, and examples.
 
 ## Feature Flags
 
@@ -905,17 +962,6 @@ Inspired by:
 - [proptest](https://github.com/proptest-rs/proptest) - Rust property testing
 - [QuickCheck](https://github.com/BurntSushi/quickcheck) - Original Rust QuickCheck
 - [Hypothesis](https://hypothesis.works/) - Python property testing
-
-## Roadmap
-
-- [x] More built-in generators (protest-extras)
-- [x] Enhanced shrinking strategies (protest-extras)
-- [x] Property test replay and persistence
-- [x] Stateful property testing DSL (protest-stateful)
-- [x] Property-based benchmarking (protest-criterion)
-- [x] Snapshot testing integration (protest-insta)
-- [ ] Proptest compatibility layer
-- [ ] Coverage-guided generation (advanced)
 
 ---
 

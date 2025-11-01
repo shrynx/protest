@@ -136,8 +136,25 @@ pub fn derive_operation(input: TokenStream) -> TokenStream {
 /// # Basic Usage
 ///
 /// ```
-/// # /*
 /// use protest_stateful::stateful_test;
+/// use protest_stateful::prelude::Operation;
+///
+/// #[derive(Debug, Clone)]
+/// enum CounterOp {
+///     Increment,
+///     Decrement,
+/// }
+///
+/// impl Operation for CounterOp {
+///     type State = i32;
+///
+///     fn execute(&self, state: &mut Self::State) {
+///         match self {
+///             CounterOp::Increment => *state += 1,
+///             CounterOp::Decrement => *state -= 1,
+///         }
+///     }
+/// }
 ///
 /// stateful_test! {
 ///     name: counter_test,
@@ -152,7 +169,6 @@ pub fn derive_operation(input: TokenStream) -> TokenStream {
 ///         max_sequence_length: 20,
 ///     }
 /// }
-/// # */
 /// ```
 ///
 /// # Configuration Options
@@ -170,8 +186,9 @@ pub fn derive_operation(input: TokenStream) -> TokenStream {
 /// # Complete Example
 ///
 /// ```
-/// # /*
-/// use protest_stateful::{stateful_test, Operation};
+/// use protest_stateful::stateful_test;
+/// use protest_stateful::prelude::Operation;
+/// use protest_stateful_derive::Operation;
 ///
 /// #[derive(Debug, Clone, Operation)]
 /// #[operation(state = "Vec<i32>")]
@@ -195,7 +212,6 @@ pub fn derive_operation(input: TokenStream) -> TokenStream {
 ///         seed: 42,
 ///     }
 /// }
-/// # */
 /// ```
 #[proc_macro]
 pub fn stateful_test(input: TokenStream) -> TokenStream {
