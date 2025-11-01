@@ -32,6 +32,7 @@ protest = { version = "0.1", features = ["derive", "persistence"] }
 protest-extras = "0.1"       # Optional: Extra generators (network, datetime, text, etc.)
 protest-stateful = "0.1"     # Optional: Stateful property testing for state machines
 protest-criterion = "0.1"    # Optional: Property-based benchmarking with Criterion
+protest-insta = "0.1"        # Optional: Snapshot testing integration with Insta
 ```
 
 **CLI Tool** (optional, for managing test failures):
@@ -786,6 +787,61 @@ criterion = "0.5"
 
 See the [protest-criterion README](protest-criterion/README.md) for comprehensive documentation and examples.
 
+## Property-Based Snapshot Testing
+
+**protest-insta** provides integration with [Insta](https://insta.rs/) for property-based snapshot testing.
+
+Test serialization and output format with diverse inputs while maintaining visual regression testing:
+
+```rust
+use protest::{Generator, primitives::IntGenerator, config::GeneratorConfig};
+use protest_insta::PropertySnapshots;
+use serde::Serialize;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
+
+#[derive(Serialize)]
+struct Report {
+    id: i32,
+    data: Vec<i32>,
+    summary: String,
+}
+
+#[test]
+fn test_report_snapshots() {
+    let mut rng = StdRng::seed_from_u64(42);
+    let config = GeneratorConfig::default();
+    let generator = IntGenerator::new(1, 100);
+
+    let mut snapshots = PropertySnapshots::new("reports");
+
+    for _ in 0..5 {
+        let id = generator.generate(&mut rng, &config);
+        let report = Report {
+            id,
+            data: vec![id * 2, id * 3],
+            summary: format!("Report #{}", id),
+        };
+        snapshots.assert_json_snapshot(&report);
+    }
+}
+```
+
+**Benefits:**
+- 📸 **Visual regression** - Catch unexpected output changes
+- 🔍 **Edge case discovery** - Test serialization across input space
+- 📝 **Documentation** - Snapshots document behavior
+- 🔄 **Review workflow** - Use Insta's powerful review tools
+
+**Install:**
+```toml
+[dev-dependencies]
+protest-insta = "0.1"
+insta = { version = "1.41", features = ["json", "yaml"] }
+```
+
+See the [protest-insta README](protest-insta/README.md) for comprehensive documentation and examples.
+
 ## Feature Flags
 
 ```toml
@@ -857,7 +913,7 @@ Inspired by:
 - [x] Property test replay and persistence
 - [x] Stateful property testing DSL (protest-stateful)
 - [x] Property-based benchmarking (protest-criterion)
-- [ ] Snapshot testing integration (protest-insta)
+- [x] Snapshot testing integration (protest-insta)
 - [ ] Proptest compatibility layer
 - [ ] Coverage-guided generation (advanced)
 

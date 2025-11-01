@@ -125,6 +125,16 @@ jobs:
           cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
         continue-on-error: false
 
+      # Wait a bit for protest-criterion to be available on crates.io
+      - name: Wait for protest-criterion to be available
+        run: sleep 30
+
+      - name: Publish protest-insta to crates.io
+        run: |
+          cd protest-insta
+          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: false
+
       - name: Extract version from tag
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
@@ -144,6 +154,7 @@ jobs:
             - [`protest-stateful` v${{ steps.version.outputs.version }}](https://crates.io/crates/protest-stateful/${{ steps.version.outputs.version }})
             - [`protest-stateful-derive` v${{ steps.version.outputs.version }}](https://crates.io/crates/protest-stateful-derive/${{ steps.version.outputs.version }})
             - [`protest-criterion` v${{ steps.version.outputs.version }}](https://crates.io/crates/protest-criterion/${{ steps.version.outputs.version }})
+            - [`protest-insta` v${{ steps.version.outputs.version }}](https://crates.io/crates/protest-insta/${{ steps.version.outputs.version }})
 
             ### Installation
             ```toml
@@ -152,6 +163,7 @@ jobs:
             protest-extras = "${{ steps.version.outputs.version }}"          # Optional: Extra generators
             protest-stateful = "${{ steps.version.outputs.version }}"        # Optional: Stateful testing
             protest-criterion = "${{ steps.version.outputs.version }}"       # Optional: Property-based benchmarking
+            protest-insta = "${{ steps.version.outputs.version }}"           # Optional: Snapshot testing
 
             [dependencies]
             # For derive macros in stateful testing

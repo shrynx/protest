@@ -1,7 +1,6 @@
 //! Comprehensive sorting algorithm benchmarks with property-based inputs
 
-use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use protest::Generator;
+use criterion::{Criterion, criterion_group, criterion_main};
 use protest::primitives::{IntGenerator, VecGenerator};
 use protest_criterion::{PropertyBencher, PropertyBenchmarkGroup};
 

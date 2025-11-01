@@ -1,7 +1,6 @@
 //! Example benchmarks demonstrating protest-criterion
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use protest::Generator;
 use protest::primitives::{IntGenerator, VecGenerator};
 use protest_criterion::PropertyBencher;
 

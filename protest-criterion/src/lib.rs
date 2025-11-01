@@ -341,7 +341,7 @@ mod tests {
 
         assert_eq!(inputs.len(), 10);
         for input in inputs {
-            assert!(input >= 0 && input <= 100);
+            assert!((0..=100).contains(&input));
         }
     }
 
@@ -354,7 +354,7 @@ mod tests {
         let input = generator.generate(&mut rng, &config);
         assert_eq!(input.len(), 5);
         for &val in &input {
-            assert!(val >= 0 && val <= 10);
+            assert!((0..=10).contains(&val));
         }
     }
 }

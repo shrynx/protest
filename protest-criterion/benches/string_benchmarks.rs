@@ -25,7 +25,7 @@ fn bench_vec_ops(c: &mut Criterion) {
 
     c.bench_function_over_inputs(
         "Vec::iter::count",
-        |b, input: &Vec<i32>| b.iter(|| input.iter().count()),
+        |b, input: &Vec<i32>| b.iter(|| input.len()),
         VecGenerator::new(IntGenerator::new(0, 100), 10, 1000),
         50,
     );
