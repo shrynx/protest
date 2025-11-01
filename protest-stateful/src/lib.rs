@@ -8,7 +8,7 @@
 //! - **State Machine Testing**: Define operations and invariants, automatically test sequences
 //! - **Model-Based Testing**: Compare real system behavior against a reference model
 //! - **Concurrent Testing**: Test parallel operations with linearizability checking
-//! - **Operation Shrinking**: Minimize failing operation sequences
+//! - **Advanced Sequence Shrinking**: Delta debugging and smart shrinking for minimal counterexamples
 //! - **Preconditions & Postconditions**: Define valid operation contexts
 //! - **Temporal Properties**: Express "eventually" and "always" properties
 //!

@@ -20,9 +20,15 @@ All generators use **std library only** (no external dependencies except `rand`)
 
 ### Enhanced Shrinking Strategies
 
+**Basic Strategies:**
 - **Smart Shrinking**: Shrink values while preserving invariants/predicates
 - **Delta Debugging**: Find minimal failing subsets using binary search
 - **Targeted Shrinking**: Shrink toward specific target values instead of zero/empty
+
+**Advanced Strategies:**
+- **Cascading Shrinker**: Apply multiple shrinking strategies in sequence for thorough exploration
+- **Guided Shrinker**: Use test feedback to efficiently find minimal counterexamples
+- **Configurable Shrinker**: Choose between breadth-first (thorough) or depth-first (fast) search strategies
 
 ## Installation
 
@@ -165,6 +171,76 @@ let gen = PathGenerator::new(1, 4);
 
 // Generate UUIDs
 let gen = UuidV4Generator::new();
+```
+
+## Advanced Shrinking Strategies
+
+When a property test fails, shrinking finds the minimal counterexample. Protest-extras provides advanced shrinking strategies for complex scenarios:
+
+### CascadingShrinker - Thorough Exploration
+
+Applies multiple shrinking strategies in sequence (element removal, chunking, etc.):
+
+```rust
+use protest_extras::prelude::*;
+
+let original = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+let shrinker = CascadingShrinker::new(original);
+
+// Generates many candidates: single removals, halves, thirds, etc.
+let candidates: Vec<_> = shrinker.shrink().collect();
+```
+
+**Use when:** You want to explore all possible shrinking approaches systematically.
+
+### GuidedShrinker - Efficient Minimization
+
+Uses test feedback to iteratively find the minimal failing example:
+
+```rust
+use protest_extras::prelude::*;
+
+let original = vec![10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+let shrinker = GuidedShrinker::new(original);
+
+// Find minimal subset where sum > 200
+let (minimal, iterations) = shrinker.find_minimal_with_stats(|v| {
+    v.iter().sum::<i32>() > 200
+});
+
+// Result: [10, 20, 30, 40, 50, 60] (sum = 210)
+```
+
+**Use when:** You can run tests quickly and want the smallest counterexample with minimal overhead.
+
+### ConfigurableShrinker - Search Strategy Control
+
+Choose between breadth-first (thorough) or depth-first (fast) search:
+
+```rust
+use protest_extras::prelude::*;
+
+let original = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+// Breadth-first: finds truly minimal counterexample
+let bfs = ConfigurableShrinker::new(original.clone(), ShrinkStrategy::BreadthFirst)
+    .with_max_depth(20);
+let minimal_bfs = bfs.find_minimal(|v| v.len() >= 3);
+
+// Depth-first: faster but may not be absolutely minimal
+let dfs = ConfigurableShrinker::new(original, ShrinkStrategy::DepthFirst)
+    .with_max_depth(20);
+let minimal_dfs = dfs.find_minimal(|v| v.len() >= 3);
+```
+
+**Use when:** You need to balance between finding the absolute minimal (BFS) and performance (DFS).
+
+### Run the Example
+
+See all shrinking strategies in action:
+
+```bash
+cargo run --example advanced_shrinking
 ```
 
 ## No External Dependencies

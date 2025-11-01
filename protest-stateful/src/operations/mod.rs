@@ -1,6 +1,7 @@
 //! Operation execution and sequence generation for stateful testing
 
 pub mod sequence;
+pub mod shrinking;
 
 use std::fmt::Debug;
 

@@ -277,5 +277,8 @@ pub mod prelude {
     };
 
     // Shrinking strategies
-    pub use crate::shrinking::{DeltaDebugShrinker, SmartShrink, TargetedShrinker};
+    pub use crate::shrinking::{
+        CascadingShrinker, ConfigurableShrinker, DeltaDebugShrinker, GuidedShrinker,
+        ShrinkStrategy, SmartShrink, TargetedShrinker,
+    };
 }

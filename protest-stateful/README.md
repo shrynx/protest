@@ -8,7 +8,7 @@ Part of the [Protest](https://github.com/shrynx/protest) property testing ecosys
 
 - 🔄 **State Machine Testing** - Define operations and invariants, automatically test sequences
 - 🎯 **Model-Based Testing** - Compare real system behavior against a reference model
-- ⚡ **Operation Shrinking** - Minimize failing operation sequences to find root causes
+- ⚡ **Advanced Sequence Shrinking** - Delta debugging and smart shrinking for minimal counterexamples
 - 🔍 **Preconditions & Postconditions** - Define valid operation contexts
 - ⏱️ **Temporal Properties** - Express "eventually", "always", and "leads to" properties
 - 🧵 **Concurrent Testing** - Test parallel operations with race condition detection
@@ -282,6 +282,7 @@ See the [examples/](examples/) directory for complete examples:
 - [`stack.rs`](examples/stack.rs) - Testing a stack implementation
 - [`key_value_store.rs`](examples/key_value_store.rs) - Model-based testing of a key-value store
 - [`concurrent_queue.rs`](examples/concurrent_queue.rs) - Concurrent testing of a queue
+- [`sequence_shrinking.rs`](examples/sequence_shrinking.rs) - Advanced shrinking strategies demonstration
 
 Run examples:
 
@@ -289,6 +290,7 @@ Run examples:
 cargo run --example stack
 cargo run --example key_value_store
 cargo run --example concurrent_queue
+cargo run --example sequence_shrinking
 ```
 
 ## Use Cases
@@ -313,9 +315,55 @@ Verify file operations, directory hierarchies, and consistency properties.
 
 ## Advanced Features
 
-### Custom Shrinking
+### Advanced Sequence Shrinking
 
-Operation sequences automatically shrink to minimal failing cases:
+Protest-stateful includes sophisticated shrinking algorithms to find minimal failing sequences:
+
+#### Delta Debugging
+
+Uses binary search to find minimal failing subsequences in O(n log n) tests:
+
+```rust
+use protest_stateful::operations::shrinking::*;
+
+let shrinker = DeltaDebugSequenceShrinker::new(failing_sequence);
+let test = StatefulTest::new(initial_state)
+    .invariant("property", |s| s.is_valid());
+
+// Find minimal sequence that still fails
+let (minimal, test_count) = shrinker.minimize_with_stats(|seq| {
+    test.run(seq).is_err()
+});
+
+println!("Reduced from {} to {} operations in {} tests",
+    failing_sequence.len(), minimal.len(), test_count);
+```
+
+#### Smart Shrinking with Constraints
+
+Shrink while preserving invariants and preconditions:
+
+```rust
+let config = SmartSequenceShrinking::new()
+    .preserve_invariants(true)
+    .preserve_preconditions(true)
+    .max_attempts(1000);
+
+let minimal = config.shrink(&failing_sequence, &initial_state, |seq| {
+    test.run(seq).is_err()
+});
+
+// The minimal sequence is guaranteed to:
+// 1. Still fail the test
+// 2. Respect all preconditions
+// 3. Maintain invariants during execution
+```
+
+See the [sequence_shrinking example](examples/sequence_shrinking.rs) for complete demonstrations.
+
+### Basic Shrinking
+
+Operation sequences also have basic shrinking built-in:
 
 ```rust
 let shrunk = sequence.shrink();

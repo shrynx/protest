@@ -43,6 +43,11 @@
       exec = "${pkgs.cargo}/bin/cargo clippy --workspace --all-features -- -D warnings";
     };
 
+    test = {
+      exec = "${pkgs.cargo}/bin/cargo test";
+    };
+
+
     release = {
       description = ''bump version, create tag, and push'';
       exec = ''

@@ -1,201 +1,127 @@
 # Protest Roadmap
 
-This document provides detailed elaborations on the planned features and enhancements for the Protest property-based testing library.
+This document outlines the planned features and enhancements for the Protest property-based testing library.
 
-## Status Overview
+## Quick Overview: Phased Development Plan
 
-### ✅ Completed Features
+> **Note:** Each feature requires complete deliverables:
+> Implementation + Tests + Docs + Examples + README updates
+> See the [Feature Completion Checklist](#-feature-completion-checklist) below for details.
 
-1. **More Built-in Generators** - ✅ COMPLETE (protest-extras)
-2. **Enhanced Shrinking Strategies** - ✅ COMPLETE (protest-extras)
-3. **Property Test Replay and Persistence** - ✅ COMPLETE (protest core + protest-cli)
-4. **Stateful Property Testing DSL** - ✅ COMPLETE (protest-stateful)
+```
+✅ v0.1.1: Core + Advanced Shrinking (COMPLETED)
+   ├─ Core property testing
+   ├─ Comprehensive generators (protest-extras)
+   ├─ Stateful testing (protest-stateful)
+   ├─ Delta debugging for sequences
+   └─ Smart shrinking with constraints
 
-### 🚧 In Progress / Partially Complete
+⚡ v0.2.0: Complete Stateful Testing (IN PROGRESS - Phase 1)
+   ├─ Linearizability verification
+   ├─ stateful_test! macro
+   ├─ #[derive(Operation)] macro
+   └─ Weight-based operation generation
+   Package: protest-stateful-derive
 
-5. **Integration with More Test Frameworks** - 🟡 PARTIAL
-6. **Coverage-Guided Generation** - 🟡 PARTIAL
+📅 v0.3.0: Property-Based Benchmarking (Phase 2)
+   └─ Criterion integration
+   Package: protest-criterion
 
-### 📋 Remaining Work
+📅 v0.4.0: Snapshot Testing (Phase 3)
+   └─ Insta integration
+   Package: protest-insta
 
-This roadmap now focuses on **enhancements to existing features** and **new advanced capabilities**.
+📅 v0.5.0: Migration Support (Phase 4)
+   └─ Proptest compatibility
+   Package: protest-proptest-compat
+
+📅 v0.6.0+: Coverage-Guided Fuzzing (Phase 5)
+   ├─ LLVM coverage integration
+   ├─ Energy scheduling
+   └─ Advanced mutations
+   Package: TBD
+```
+
+## Project Status
+
+### ✅ Completed (v0.1.1)
+
+- ✅ **Core Property Testing Framework** - Full QuickCheck-style testing
+- ✅ **Comprehensive Generators** - 23+ generators in protest-extras
+- ✅ **Enhanced Shrinking Strategies** - Advanced shrinking algorithms (protest-extras)
+- ✅ **Property Test Replay and Persistence** - Seed persistence, failure database, CLI tool
+- ✅ **Stateful Property Testing DSL** - Full state machine testing (protest-stateful)
+- ✅ **Advanced Sequence Shrinking** - Delta debugging and smart shrinking (protest-stateful)
+- ✅ **Basic Coverage-Guided Corpus Building** - Path tracking and corpus management
+
+### ⚡ Phase 1: Complete Stateful Testing (v0.2.0) - IN PROGRESS
+
+**Goal:** Finish all stateful testing features before moving to integrations
+
+**Next Up:**
+1. Linearizability verification for concurrent systems
+2. Procedural macros for better ergonomics
+3. Weight-based operation generation
 
 ---
 
 ## Table of Contents
 
-1. [Completed: More Built-in Generators](#1-completed-more-built-in-generators)
-2. [Completed: Enhanced Shrinking Strategies](#2-completed-enhanced-shrinking-strategies)
-3. [Remaining: Integration with More Test Frameworks](#3-remaining-integration-with-more-test-frameworks)
-4. [Completed: Property Test Replay and Persistence](#4-completed-property-test-replay-and-persistence)
-5. [Remaining: Advanced Coverage-Guided Generation](#5-remaining-advanced-coverage-guided-generation)
-6. [Completed: Stateful Property Testing DSL](#6-completed-stateful-property-testing-dsl)
-7. [New: Advanced Stateful Testing Features](#7-new-advanced-stateful-testing-features)
-8. [New: Procedural Macros for Stateful Testing](#8-new-procedural-macros-for-stateful-testing)
+1. [Integration with Test Frameworks](#1-integration-with-test-frameworks)
+2. [Advanced Coverage-Guided Generation](#2-advanced-coverage-guided-generation)
+3. [Advanced Stateful Testing Features](#3-advanced-stateful-testing-features)
+4. [Procedural Macros for Stateful Testing](#4-procedural-macros-for-stateful-testing)
 
 ---
 
-## 1. Completed: More Built-in Generators
+## 1. Integration with Test Frameworks
 
-### ✅ Status: COMPLETE
+**Status:** 🟡 PARTIAL - Basic support exists, needs expansion
 
-Implemented in **protest-extras** package.
+### 1.1 Criterion Integration
 
-### What Was Delivered
+**Goal:** Property-based benchmarking
 
-#### Network/Web Generators ✅
 ```rust
-pub struct IpAddressGenerator;  // IPv4/IPv6
-pub struct UrlGenerator;        // Valid URLs
-pub struct EmailGenerator;      // RFC-compliant emails
-pub struct JsonGenerator;       // Valid JSON
-```
-
-#### Date/Time Generators ✅
-```rust
-pub struct DateTimeGenerator;   // Dates within ranges
-pub struct DurationGenerator;   // Time durations
-pub struct TimestampGenerator;  // Unix timestamps
-```
-
-#### Domain-Specific Generators ✅
-```rust
-pub struct UuidGenerator;       // UUIDs (v4)
-pub struct Base64Generator;     // Valid base64 strings
-pub struct HexGenerator;        // Hexadecimal strings
-pub struct PathGenerator;       // Valid file system paths
-```
-
-#### Complex Collection Generators ✅
-```rust
-pub struct NonEmptyVecGenerator<T>;  // Ensures vec.len() >= 1
-pub struct SortedVecGenerator<T>;    // Pre-sorted vectors
-pub struct UniqueVecGenerator<T>;    // No duplicates
-```
-
-#### Constrained Numeric Generators ✅
-```rust
-pub struct PositiveIntGenerator<T>;
-pub struct EvenNumberGenerator<T>;
-pub struct PrimeNumberGenerator;
-pub struct PercentageGenerator;  // 0.0..=100.0
-```
-
-#### Text Generators ✅
-```rust
-pub struct AlphabeticGenerator;     // Only letters
-pub struct AlphanumericGenerator;   // Letters + numbers
-pub struct IdentifierGenerator;     // Valid Rust identifiers
-pub struct SentenceGenerator;       // Realistic sentences
-```
-
----
-
-## 2. Completed: Enhanced Shrinking Strategies
-
-### ✅ Status: COMPLETE
-
-Implemented in **protest-extras** package.
-
-### What Was Delivered
-
-#### Smart Shrinking with Invariants ✅
-```rust
-pub trait SmartShrink {
-    fn shrink_preserving<F>(&self, invariant: F) -> Box<dyn Iterator<Item = Self>>
-    where F: Fn(&Self) -> bool;
-}
-```
-
-#### Delta Debugging ✅
-```rust
-pub struct DeltaDebugShrinker<T> {
-    // Binary search through collections to find minimal failing subset
-}
-```
-
-#### Targeted Shrinking ✅
-```rust
-pub struct TargetedShrinker<T> {
-    target_value: T,  // Shrink toward specific value
-}
-```
-
-### Usage Example
-```rust
-use protest_extras::shrinking::*;
-
-let vec = vec![1, 3, 5, 7, 9];
-let shrunk = vec.shrink_preserving(|v| {
-    v.windows(2).all(|w| w[0] <= w[1])  // Keep sorted
-});
-```
-
----
-
-## 3. Remaining: Integration with More Test Frameworks
-
-### 🟡 Status: PARTIAL (Native #[test] and Tokio work)
-
-### What's Done ✅
-
-1. **Native #[test] Integration** ✅
-2. **Tokio Async Integration** ✅
-
-### What's Remaining 📋
-
-#### 1. Criterion (Benchmarking) Integration
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use protest::criterion::PropertyBenchmark;
+use criterion::{criterion_group, Criterion};
+use protest::prelude::*;
 
 fn bench_sort_property(c: &mut Criterion) {
-    c.bench_function("sort maintains length", |b| {
-        b.iter_property(
-            VecGenerator::new(IntGenerator::new(0, 1000), 0, 100),
-            |v: Vec<i32>| {
-                let mut sorted = v.clone();
-                sorted.sort();
-                assert_eq!(sorted.len(), v.len());
-            }
-        );
+    c.bench_property("sort maintains elements", |v: Vec<i32>| {
+        let mut sorted = v.clone();
+        sorted.sort();
+        sorted.len() == v.len()
     });
 }
+
+criterion_group!(benches, bench_sort_property);
 ```
 
 **Priority:** Medium
 **Complexity:** Low
-**Benefit:** Combine property testing with performance benchmarks
+**Benefit:** Detect performance regressions via properties
 
-#### 2. Proptest Migration Helper
+### 1.2 Proptest Compatibility Layer
+
+**Goal:** Support proptest strategies in protest
+
 ```rust
-use protest::compat::proptest;
+use protest::proptest_compat::*;
 
-// Automatically convert proptest strategies to Protest generators
-let strategy = any::<u32>().prop_map(|x| x * 2);
-let generator = protest::from_proptest(strategy);
-```
-
-**Priority:** Low
-**Complexity:** Medium
-**Benefit:** Easy migration for existing proptest users
-
-#### 3. QuickCheck Compatibility Layer
-```rust
-use protest::compat::quickcheck;
-
-impl quickcheck::Arbitrary for MyType {
-    fn arbitrary(g: &mut Gen) -> Self {
-        MyType::auto_generator().generate(g, &config)
-    }
+#[property_test]
+fn test_with_proptest_strategy(x: impl Strategy<Value = i32>) {
+    // Use existing proptest strategies in protest tests
 }
 ```
 
 **Priority:** Low
-**Complexity:** Low
-**Benefit:** Interop with existing QuickCheck code
+**Complexity:** Medium
+**Benefit:** Easier migration from proptest
 
-#### 4. Insta (Snapshot Testing) Integration
+### 1.3 Insta Snapshot Integration
+
+**Goal:** Combine property testing with snapshot testing
+
 ```rust
 use protest::insta::PropertySnapshot;
 
@@ -215,69 +141,13 @@ fn test_serialization_format(data: MyData) {
 
 ---
 
-## 4. Completed: Property Test Replay and Persistence
+## 2. Advanced Coverage-Guided Generation
 
-### ✅ Status: COMPLETE
+**Status:** 🟡 PARTIAL - Basic corpus building done, advanced instrumentation remains
 
-Implemented across **protest**, **protest-cli**, and **protest-stateful**.
+### 2.1 LLVM Coverage Integration
 
-### What Was Delivered
-
-#### Seed Persistence ✅
-```rust
-#[property_test]
-fn test_something(x: i32) {
-    // Automatically saves failing seeds
-    // Next run replays with same seed first
-}
-```
-
-#### Failure Case Database ✅
-```rust
-// Saved to: .protest/failures/test_parser/case_001.json
-```
-
-#### Regression Test Generation ✅
-```rust
-// CLI command generates permanent test files
-protest generate my_test
-```
-
-#### Corpus Management ✅
-```rust
-pub struct TestCorpus {
-    interesting_cases: Vec<TestCase>,
-}
-```
-
-#### CLI Tool ✅
-```bash
-protest list              # List all failures
-protest show test_name    # Show failure details
-protest clean test_name   # Remove failures
-protest generate          # Generate regression tests
-protest stats            # Show statistics
-```
-
----
-
-## 5. Remaining: Advanced Coverage-Guided Generation
-
-### 🟡 Status: PARTIAL (Basic corpus building complete)
-
-### What's Done ✅
-
-**Basic Coverage-Guided Corpus Building** ✅
-```rust
-pub struct CoverageCorpus {
-    // Tracks unique execution paths
-    // Builds corpus of interesting inputs
-}
-```
-
-### What's Remaining 📋
-
-#### 1. LLVM Coverage Integration
+**Goal:** Industry-standard coverage instrumentation
 
 ```rust
 pub struct LLVMCoverageGuided {
@@ -292,142 +162,124 @@ fn test_parser(input: String) {
 }
 ```
 
+**Implementation:**
+- Use `llvm-cov` instrumentation
+- Track basic block coverage
+- Track edge coverage
+- Track comparison feedback (cmp hooks)
+
 **Priority:** High
 **Complexity:** High
 **Benefit:** Industry-standard coverage instrumentation
 
-#### 2. Energy Scheduling
+### 2.2 Energy Scheduling
+
+**Goal:** Prioritize inputs based on coverage potential
 
 ```rust
 pub struct EnergyScheduler {
-    // Spend more iterations on inputs that find new coverage
-    energy_per_input: HashMap<InputId, f64>,
+    input_energy: HashMap<InputId, f64>,
 }
+
+// Inputs that discover more coverage get more energy
+// More energy = more mutations, more testing time
 ```
+
+**Algorithm:**
+- Assign energy based on novelty
+- Reward inputs that find new coverage
+- Deprioritize saturated inputs
 
 **Priority:** Medium
 **Complexity:** Medium
-**Benefit:** More efficient input generation
+**Benefit:** Faster path to deep coverage
 
-#### 3. Advanced Mutations
+### 2.3 Advanced Input Mutations
+
+**Goal:** Smarter mutations based on coverage
 
 ```rust
-pub struct CoverageGuidedMutator {
-    // Intelligent mutations based on coverage feedback
-    // Bit flips, arithmetic operations, boundary values
+pub struct CoverageMutator {
+    comparison_feedback: Vec<ComparisonTrace>,
 }
+
+// If code compares: if x == 42
+// Mutator tries: x = 42, x = 41, x = 43
 ```
+
+**Mutations:**
+- Dictionary-based mutations
+- Comparison-guided mutations
+- Structural mutations (for complex types)
+- AFL-style bit flips, arithmetic, etc.
 
 **Priority:** High
 **Complexity:** High
-**Benefit:** Better exploration of input space
-
-#### 4. Custom Coverage Metrics
-
-```rust
-#[property_test(
-    coverage_guided = true,
-    metrics = [BranchCoverage, PathCoverage, DataFlowCoverage]
-)]
-fn test_with_multiple_metrics(input: Input) {
-    // Track multiple coverage dimensions
-}
-```
-
-**Priority:** Low
-**Complexity:** High
-**Benefit:** More precise coverage tracking
+**Benefit:** Much deeper code coverage
 
 ---
 
-## 6. Completed: Stateful Property Testing DSL
+## 3. Advanced Stateful Testing Features
 
-### ✅ Status: COMPLETE
+**Status:** 🟡 PARTIAL - Advanced shrinking complete, linearizability remains
 
-Implemented in **protest-stateful** package.
+### 3.1 Advanced Sequence Shrinking ✅ COMPLETED
 
-### What Was Delivered
+#### Delta Debugging for Sequences ✅
 
-#### Core Stateful Testing ✅
+**Implementation:** `DeltaDebugSequenceShrinker` in protest-stateful
+
+Uses binary search to find minimal failing subsequences in O(n log n) tests:
+
 ```rust
-pub struct StatefulTest<State, Op> { /* ... */ }
-pub trait Operation { /* ... */ }
-pub struct OperationSequence<Op> { /* ... */ }
-```
+use protest_stateful::operations::shrinking::*;
 
-#### Model-Based Testing ✅
-```rust
-pub trait Model {
-    type SystemState;
-    type Operation;
-    fn execute_model(&mut self, op: &Self::Operation);
-    fn matches(&self, system: &Self::SystemState) -> bool;
-}
-```
-
-#### Temporal Properties ✅
-```rust
-pub struct Eventually<State, F> { /* ... */ }
-pub struct Always<State, F> { /* ... */ }
-pub struct Never<State, F> { /* ... */ }
-pub struct LeadsTo<State, F1, F2> { /* ... */ }
-```
-
-#### Concurrent Testing ✅
-```rust
-pub trait ConcurrentOperation: Operation + Send + Sync { /* ... */ }
-pub fn run_concurrent<Op>(...) -> Result<Op::State, ConcurrentTestFailure>
-```
-
----
-
-## 7. New: Advanced Stateful Testing Features
-
-### 📋 Status: NOT STARTED
-
-These are enhancements to the existing protest-stateful package.
-
-### 7.1 Advanced Shrinking for Operation Sequences
-
-#### Delta Debugging Integration ✅ (Basic) → 🚧 (Advanced)
-
-**Current:**
-```rust
-let shrunk = sequence.shrink();  // Basic size reduction
-```
-
-**Planned:**
-```rust
 let shrinker = DeltaDebugSequenceShrinker::new(sequence);
-let minimal = shrinker.minimize_preserving_failure(test_fn);
+let (minimal, test_count) = shrinker.minimize_with_stats(|seq| {
+    test.run(seq).is_err()
+});
 // Finds minimal subsequence that still fails
 ```
 
-**Priority:** High
-**Complexity:** Medium
-**Benefit:** Much faster debugging with minimal failing sequences
+**Features:**
+- Binary search over subsequences
+- Chunk-based reduction (halves, thirds, etc.)
+- Individual operation removal
+- Statistics tracking (test count)
 
-#### Smart Shrinking that Preserves Invariants
+**Result:** ✅ Implemented with comprehensive tests and examples
+
+#### Smart Shrinking that Preserves Invariants ✅
+
+**Implementation:** `SmartSequenceShrinking` in protest-stateful
+
+Shrink while maintaining invariants and preconditions:
 
 ```rust
-let test = StatefulTest::new(initial_state)
-    .invariant("balance_positive", |s| s.balance > 0)
-    .shrinking_strategy(SmartSequenceShrinking {
-        preserve_invariants: true,
-        preserve_preconditions: true,
-    });
+let config = SmartSequenceShrinking::new()
+    .preserve_invariants(true)
+    .preserve_preconditions(true)
+    .max_attempts(1000);
 
-// Shrinking will only produce sequences that:
+let minimal = config.shrink(&sequence, &initial_state, |seq| {
+    test.run(seq).is_err()
+});
+
+// Shrinking produces sequences that:
 // 1. Still fail the property
 // 2. Maintain all invariants
 // 3. Respect all preconditions
 ```
 
-**Priority:** High
-**Complexity:** High
-**Benefit:** More meaningful minimal counterexamples
+**Features:**
+- Configurable constraint preservation
+- Precondition validation during shrinking
+- Max attempts limiting
+- Statistics tracking
 
-### 7.2 Actual Linearizability Verification
+**Result:** ✅ Implemented with comprehensive tests and examples
+
+### 3.2 Linearizability Verification
 
 #### Current State
 ```rust
@@ -470,9 +322,6 @@ fn test_concurrent_queue_linearizability() {
     };
 
     let result = run_concurrent(initial, operations, config);
-
-    // Automatically verifies linearizability
-    // Reports violations with counterexample
     assert!(result.is_ok());
 }
 ```
@@ -489,7 +338,7 @@ if let Err(e) = result {
     // Outputs:
     // Thread 1: Enqueue(1) |------|
     // Thread 2:             Enqueue(2) |-----|
-    // Thread 3:                  Dequeue() -> 2  |-----|  ❌ Not linearizable!
+    // Thread 3:                  Dequeue() -> 2  |-----|  ❌
     // Thread 4:                                   Dequeue() -> 1 |-----|
     //
     // Violation: Dequeue returned 2 before 1, but 1 was enqueued first
@@ -502,17 +351,15 @@ if let Err(e) = result {
 
 ---
 
-## 8. New: Procedural Macros for Stateful Testing
+## 4. Procedural Macros for Stateful Testing
 
-### 📋 Status: NOT STARTED
+**Status:** 📋 NOT STARTED - Would create new `protest-stateful-derive` package
 
-Create a new **protest-stateful-derive** package.
+### 4.1 `stateful_test!` Procedural Macro
 
-### 8.1 `stateful_test!` Procedural Macro
+**Goal:** Reduce boilerplate for defining stateful tests
 
-**Goal:** Reduce boilerplate for defining stateful tests.
-
-**Current Approach:**
+**Current Approach (Verbose):**
 ```rust
 #[derive(Debug, Clone)]
 enum StackOp {
@@ -539,7 +386,7 @@ impl Operation for StackOp {
 }
 ```
 
-**With Macro:**
+**With Macro (Concise):**
 ```rust
 stateful_test! {
     name: stack_operations,
@@ -548,172 +395,323 @@ stateful_test! {
     operations {
         Push(value: i32) {
             execute: |state| state.items.push(value),
-            precondition: |_state| true,
-        },
+        }
 
         Pop {
-            execute: |state| { state.items.pop(); },
             precondition: |state| !state.items.is_empty(),
-        },
+            execute: |state| { state.items.pop(); },
+        }
     }
 
     invariants {
         length_non_negative: |state| state.items.len() >= 0,
-        capacity_reasonable: |state| state.items.capacity() < 10000,
+        empty_when_zero: |state| {
+            state.items.is_empty() == (state.items.len() == 0)
+        },
     }
 }
 ```
 
-**Priority:** High
-**Complexity:** High
-**Benefit:** Much more ergonomic API
+**Priority:** Medium
+**Complexity:** Medium
+**Benefit:** 50% less boilerplate code
 
-### 8.2 `#[derive(Operation)]` Macro
+### 4.2 `#[derive(Operation)]` Macro
 
-**Automatic Implementation:**
+**Goal:** Auto-implement Operation trait
+
 ```rust
 #[derive(Debug, Clone, Operation)]
 #[operation(state = "Stack")]
 enum StackOp {
-    #[operation(execute = "state.items.push(value)")]
+    #[execute(state.items.push(value))]
     Push { value: i32 },
 
-    #[operation(
-        execute = "state.items.pop()",
-        precondition = "!state.items.is_empty()"
-    )]
+    #[execute(state.items.pop())]
+    #[precondition(!state.items.is_empty())]
     Pop,
 }
 ```
 
+**Priority:** Low
+**Complexity:** Medium
+**Benefit:** Even less boilerplate
+
+### 4.3 Property-Based Operation Generation
+
+**Goal:** Automatically generate operations from types
+
+```rust
+#[derive(Debug, Clone, OperationGenerator)]
+enum StackOp {
+    #[weight(5)]  // More likely to be generated
+    Push(#[gen(range(0..100))] i32),
+
+    #[weight(2)]  // Less likely
+    Pop,
+
+    #[weight(1)]  // Rare
+    Clear,
+}
+
+// Auto-generates:
+impl Generator<StackOp> for StackOpGenerator { ... }
+```
+
+**Features:**
+- Weight-based operation selection
+- Automatic generator derivation
+- Custom generation strategies per field
+
 **Priority:** Medium
 **Complexity:** High
-**Benefit:** Less boilerplate
-
-### 8.3 Automatic Operation Generation
-
-**Goal:** Generate operations from type signatures.
-
-```rust
-#[derive(Debug, Clone)]
-struct BankAccount {
-    balance: i32,
-}
-
-// Automatically generate operations
-#[derive(GenerateOperations)]
-#[generate(
-    deposit(amount: i32) -> precondition = "amount > 0",
-    withdraw(amount: i32) -> precondition = "state.balance >= amount",
-    check_balance() -> {},
-)]
-impl BankAccount {
-    fn deposit(&mut self, amount: i32) {
-        self.balance += amount;
-    }
-
-    fn withdraw(&mut self, amount: i32) {
-        self.balance -= amount;
-    }
-
-    fn check_balance(&self) -> i32 {
-        self.balance
-    }
-}
-```
-
-**Priority:** Medium
-**Complexity:** Very High
-**Benefit:** Zero boilerplate for simple cases
-
-### 8.4 Weight-Based Operation Selection
-
-```rust
-stateful_test! {
-    name: weighted_operations,
-    state: MyState,
-
-    operations {
-        #[weight(10)]  // More common
-        Read { /* ... */ },
-
-        #[weight(2)]   // Less common
-        Write { /* ... */ },
-
-        #[weight(1)]   // Rare
-        Delete { /* ... */ },
-    }
-}
-
-// Or programmatically:
-let generator = WeightedOperationGenerator::new()
-    .with_weight(StackOp::Push(gen_int()), 10)
-    .with_weight(StackOp::Pop, 3)
-    .with_weight(StackOp::Clear, 1);
-```
-
-**Priority:** High
-**Complexity:** Medium
-**Benefit:** More realistic operation distributions
+**Benefit:** Automatic test generation
 
 ---
 
-## Implementation Priority
+## Implementation Timeline
 
-### Immediate (Next Release)
-
-1. **Linearizability Checking** - Critical for concurrent testing
-2. **Advanced Sequence Shrinking** - Better debugging experience
-3. **Weight-Based Operation Selection** - More realistic tests
-
-### Short Term (1-2 Releases)
-
-4. **`stateful_test!` Macro** - Improved ergonomics
-5. **LLVM Coverage Integration** - Better coverage guidance
-6. **Criterion Integration** - Property-based benchmarks
-
-### Medium Term (3-6 Releases)
-
-7. **Advanced Mutations** - Smarter input generation
-8. **`#[derive(Operation)]`** - Less boilerplate
-9. **Insta Integration** - Snapshot testing
-10. **Energy Scheduling** - Efficient fuzzing
-
-### Long Term (Future)
-
-11. **Automatic Operation Generation** - Zero boilerplate
-12. **Proptest Migration** - Ecosystem compatibility
-13. **QuickCheck Compat** - Ecosystem compatibility
-14. **Custom Coverage Metrics** - Advanced use cases
+### Completed (v0.1.1)
+- ✅ Delta debugging for sequence shrinking
+- ✅ Smart shrinking preserving invariants
 
 ---
 
-## Contributing
+## 📋 Feature Completion Checklist
 
-We welcome contributions to any of these roadmap items!
+**For every feature, ensure all deliverables are complete:**
 
-### How to Contribute
+### Required Deliverables
+- ✅ **Implementation** - Working code with proper error handling
+- ✅ **Unit Tests** - Comprehensive test coverage (aim for >80%)
+- ✅ **Integration Tests** - Real-world usage scenarios
+- ✅ **Documentation**:
+  - Rustdoc comments on all public APIs
+  - Module-level documentation with examples
+  - Usage examples in doc comments
+- ✅ **Examples** - At least one runnable example demonstrating the feature
+- ✅ **README Updates**:
+  - Update package-specific README (e.g., `protest-stateful/README.md`)
+  - Update root `README.md` to mention the new feature
+  - Add feature to feature list and quick start if applicable
+- ✅ **CHANGELOG** - Document changes in CHANGELOG.md
 
-1. Check existing issues for the feature
-2. Open a discussion issue to align on approach
-3. Implement with comprehensive tests
-4. Add documentation and examples
-5. Submit PR
+### Quality Standards
+- All tests pass (`cargo test`)
+- No compiler warnings (`cargo clippy`)
+- Proper formatting (`cargo fmt`)
+- Documentation builds without warnings (`cargo doc`)
+- Examples run successfully (`cargo run --example <name>`)
 
-For major features (especially procedural macros and coverage integration), please discuss the design first.
+### Feature Implementation Template
+
+Use this checklist when implementing each feature:
+
+```markdown
+## Feature: [Feature Name]
+
+### Implementation
+- [ ] Core implementation complete
+- [ ] Error handling implemented
+- [ ] Public API finalized
+
+### Testing
+- [ ] Unit tests written (>80% coverage)
+- [ ] Integration tests written
+- [ ] Edge cases tested
+- [ ] All tests passing
+
+### Documentation
+- [ ] Public API has rustdoc comments
+- [ ] Module-level docs with examples
+- [ ] Usage examples in doc comments
+- [ ] Doc tests passing
+
+### Examples
+- [ ] At least one runnable example created
+- [ ] Example demonstrates key features
+- [ ] Example documented with comments
+- [ ] Example runs without errors
+
+### README Updates
+- [ ] Package README updated (if applicable)
+- [ ] Root README.md updated
+- [ ] Feature added to feature list
+- [ ] Quick start updated (if needed)
+
+### CHANGELOG
+- [ ] Changes documented in CHANGELOG.md
+- [ ] Breaking changes noted (if any)
+- [ ] Migration guide written (if needed)
+
+### Quality Checks
+- [ ] `cargo test` passes
+- [ ] `cargo clippy` has no warnings
+- [ ] `cargo fmt` applied
+- [ ] `cargo doc` builds without warnings
+- [ ] Examples run successfully
+```
+
+---
+
+### Phase 1: Complete Stateful Testing (v0.2.0)
+**Goal:** Finish all stateful testing features and ergonomics
+
+1. ⚡ **Linearizability Verification** - Critical for concurrent data structure testing
+   - **Deliverables:** Implementation + Tests + Docs + Example + README updates
+
+2. ⚡ **`stateful_test!` Procedural Macro** - Reduce boilerplate, improve DX
+   - **Deliverables:** Macro implementation + Tests + Docs + Example + README updates
+
+3. ⚡ **`#[derive(Operation)]` Macro** - Auto-implement Operation trait
+   - **Deliverables:** Derive macro + Tests + Docs + Example + README updates
+
+4. ⚡ **Weight-based Operation Generation** - Control operation frequency in tests
+   - **Deliverables:** Generator implementation + Tests + Docs + Example + README updates
+
+**Package:** `protest-stateful` + new `protest-stateful-derive` crate for macros
+
+### Phase 2: Criterion Integration (v0.3.0)
+**Goal:** Property-based benchmarking
+
+5. 📅 **protest-criterion** - New crate for Criterion integration
+   - **Deliverables:**
+     - Criterion trait implementations
+     - Property-based benchmark macros
+     - Comprehensive tests
+     - Benchmark examples
+     - README with quick start guide
+     - Root README update with benchmarking section
+
+**Package:** New `protest-criterion` crate
+
+### Phase 3: Snapshot Testing Integration (v0.4.0)
+**Goal:** Combine property testing with snapshot testing
+
+6. 📅 **protest-insta** - New crate for Insta integration
+   - **Deliverables:**
+     - Insta integration layer
+     - Property + snapshot macros
+     - Tests with snapshot fixtures
+     - Examples showing edge case discovery
+     - README with usage patterns
+     - Root README update with snapshot testing section
+
+**Package:** New `protest-insta` crate
+
+### Phase 4: Proptest Migration Path (v0.5.0)
+**Goal:** Easy migration from proptest
+
+7. 📅 **protest-proptest-compat** - New crate for proptest compatibility
+   - **Deliverables:**
+     - Strategy adapter implementations
+     - Conversion utilities
+     - Migration guide documentation
+     - Side-by-side comparison examples
+     - README with migration checklist
+     - Root README update mentioning compatibility
+
+**Package:** New `protest-proptest-compat` crate
+
+### Phase 5: Advanced Coverage-Guided Generation (v0.6.0+)
+**Goal:** Deep coverage instrumentation and intelligent fuzzing
+
+8. 📅 **LLVM Coverage Integration** - Industry-standard instrumentation
+   - **Deliverables:** TBD based on architecture decisions
+
+9. 📅 **Energy Scheduling** - Prioritize high-value inputs
+   - **Deliverables:** TBD based on architecture decisions
+
+10. 📅 **Advanced Input Mutations** - Comparison-guided, dictionary-based mutations
+    - **Deliverables:** TBD based on architecture decisions
+
+**Package:** TBD - To be determined based on architecture needs
 
 ---
 
 ## Package Organization
 
-- **protest** - Core library ✅
-- **protest-derive** - Derive macros ✅
-- **protest-extras** - Extra generators & shrinking ✅
-- **protest-cli** - CLI tool ✅
-- **protest-stateful** - Stateful testing DSL ✅
-- **protest-stateful-derive** - Stateful macros 📋 (Future)
-- **protest-coverage** - LLVM coverage integration 📋 (Future)
+### Current Packages (v0.1.1)
+1. ✅ **protest** - Core property testing framework
+2. ✅ **protest-derive** - Procedural macros for core
+3. ✅ **protest-extras** - Extended generators and shrinking strategies
+4. ✅ **protest-cli** - Command-line tools for test management
+5. ✅ **protest-stateful** - Stateful property testing with advanced shrinking
+
+### Planned Packages (In Order)
+
+#### Phase 1: Stateful Testing (v0.2.0)
+6. 📦 **protest-stateful-derive** - Procedural macros for stateful testing
+   - `stateful_test!` macro
+   - `#[derive(Operation)]` macro
+   - Operation generator macros
+
+#### Phase 2: Benchmarking (v0.3.0)
+7. 📦 **protest-criterion** - Criterion integration for property-based benchmarks
+
+#### Phase 3: Snapshot Testing (v0.4.0)
+8. 📦 **protest-insta** - Insta snapshot integration
+
+#### Phase 4: Migration Support (v0.5.0)
+9. 📦 **protest-proptest-compat** - Proptest compatibility layer
+
+#### Phase 5: Coverage (v0.6.0+)
+10. 📦 **protest-coverage** - LLVM coverage instrumentation (TBD)
 
 ---
 
-*Last updated: 2025-01-15*
+## Current Development Focus
+
+### Active Work (Phase 1: v0.2.0)
+We are currently completing all stateful testing features:
+
+1. **Next Up:** Linearizability Verification
+2. **Then:** `stateful_test!` procedural macro
+3. **Then:** `#[derive(Operation)]` macro
+4. **Then:** Weight-based operation generation
+
+### Contributing
+
+Contributions are welcome! The current focus is Phase 1, but contributions to any area are appreciated.
+
+#### High Impact Areas
+- **Linearizability Verification** - Critical for concurrent testing
+- **Procedural Macros** - Improve developer experience
+- **Additional Generators** - Expand protest-extras
+- **Documentation & Examples** - Always valuable
+
+#### Getting Started
+- Review the phase plan above
+- Check existing implementations for patterns
+- Open an issue to discuss major features
+- Start with documentation or examples for first contributions
+
+---
+
+## Summary
+
+**Current State:** Production-ready core with advanced features (v0.1.1)
+
+- ✅ Core property testing framework
+- ✅ Comprehensive generators (protest-extras)
+- ✅ Stateful testing with advanced shrinking
+- ✅ CLI tools for test management
+- ✅ Delta debugging and smart shrinking
+
+**Development Strategy:**
+
+The roadmap follows a **phased approach**, completing one major feature area before moving to the next:
+
+1. **Phase 1 (v0.2.0):** Complete stateful testing - Add linearizability verification and ergonomic macros
+2. **Phase 2 (v0.3.0):** Property-based benchmarking with Criterion
+3. **Phase 3 (v0.4.0):** Snapshot testing integration with Insta
+4. **Phase 4 (v0.5.0):** Migration support from Proptest
+5. **Phase 5 (v0.6.0+):** Advanced coverage-guided generation
+
+**Philosophy:**
+- Ship complete, polished features one at a time
+- Each phase delivers standalone value
+- Build on proven foundations
+- Respond to user feedback between phases
+
+The library is **production-ready today**, with each upcoming phase adding powerful new capabilities for specific use cases.
