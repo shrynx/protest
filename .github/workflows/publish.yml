@@ -1,6 +1,44 @@
 name: Publish to crates.io
 
 on:
+  workflow_dispatch:
+    inputs:
+      publish_derive:
+        description: 'Publish protest-derive'
+        type: boolean
+        default: true
+      publish_protest:
+        description: 'Publish protest'
+        type: boolean
+        default: true
+      publish_extras:
+        description: 'Publish protest-extras'
+        type: boolean
+        default: true
+      publish_cli:
+        description: 'Publish protest-cli'
+        type: boolean
+        default: true
+      publish_stateful:
+        description: 'Publish protest-stateful'
+        type: boolean
+        default: true
+      publish_stateful_derive:
+        description: 'Publish protest-stateful-derive'
+        type: boolean
+        default: true
+      publish_criterion:
+        description: 'Publish protest-criterion'
+        type: boolean
+        default: true
+      publish_insta:
+        description: 'Publish protest-insta'
+        type: boolean
+        default: true
+      publish_proptest_compat:
+        description: 'Publish protest-proptest-compat'
+        type: boolean
+        default: true
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
@@ -60,96 +98,89 @@ jobs:
         run: cargo build --release --verbose
 
       - name: Publish protest-derive to crates.io
-        run: |
-          cd protest-derive
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        continue-on-error: false
+        if: github.event_name == 'push' || inputs.publish_derive
+        run: cargo publish -p protest-derive --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: true
 
-      # Wait a bit for protest-derive to be available on crates.io
       - name: Wait for protest-derive to be available
+        if: github.event_name == 'push' || inputs.publish_derive
         run: sleep 30
 
       - name: Publish protest to crates.io
-        run: |
-          cd protest
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        continue-on-error: false
+        if: github.event_name == 'push' || inputs.publish_protest
+        run: cargo publish -p protest --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: true
 
-      # Wait a bit for protest to be available on crates.io
       - name: Wait for protest to be available
+        if: github.event_name == 'push' || inputs.publish_protest
         run: sleep 30
 
       - name: Publish protest-extras to crates.io
-        run: |
-          cd protest-extras
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        continue-on-error: false
+        if: github.event_name == 'push' || inputs.publish_extras
+        run: cargo publish -p protest-extras --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: true
 
-      # Wait a bit for protest-extras to be available on crates.io
       - name: Wait for protest-extras to be available
+        if: github.event_name == 'push' || inputs.publish_extras
         run: sleep 30
 
       - name: Publish protest-cli to crates.io
-        run: |
-          cd protest-cli
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        continue-on-error: false
+        if: github.event_name == 'push' || inputs.publish_cli
+        run: cargo publish -p protest-cli --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: true
 
-      # Wait a bit for protest-cli to be available on crates.io
       - name: Wait for protest-cli to be available
+        if: github.event_name == 'push' || inputs.publish_cli
         run: sleep 30
 
       - name: Publish protest-stateful to crates.io
-        run: |
-          cd protest-stateful
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        continue-on-error: false
+        if: github.event_name == 'push' || inputs.publish_stateful
+        run: cargo publish -p protest-stateful --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: true
 
-      # Wait a bit for protest-stateful to be available on crates.io
       - name: Wait for protest-stateful to be available
+        if: github.event_name == 'push' || inputs.publish_stateful
         run: sleep 30
 
       - name: Publish protest-stateful-derive to crates.io
-        run: |
-          cd protest-stateful-derive
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        continue-on-error: false
+        if: github.event_name == 'push' || inputs.publish_stateful_derive
+        run: cargo publish -p protest-stateful-derive --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: true
 
-      # Wait a bit for protest-stateful-derive to be available on crates.io
       - name: Wait for protest-stateful-derive to be available
+        if: github.event_name == 'push' || inputs.publish_stateful_derive
         run: sleep 30
 
       - name: Publish protest-criterion to crates.io
-        run: |
-          cd protest-criterion
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        continue-on-error: false
+        if: github.event_name == 'push' || inputs.publish_criterion
+        run: cargo publish -p protest-criterion --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: true
 
-      # Wait a bit for protest-criterion to be available on crates.io
       - name: Wait for protest-criterion to be available
+        if: github.event_name == 'push' || inputs.publish_criterion
         run: sleep 30
 
       - name: Publish protest-insta to crates.io
-        run: |
-          cd protest-insta
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        continue-on-error: false
+        if: github.event_name == 'push' || inputs.publish_insta
+        run: cargo publish -p protest-insta --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: true
 
-      # Wait a bit for protest-insta to be available on crates.io
       - name: Wait for protest-insta to be available
+        if: github.event_name == 'push' || inputs.publish_insta
         run: sleep 30
 
       - name: Publish protest-proptest-compat to crates.io
-        run: |
-          cd protest-proptest-compat
-          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        continue-on-error: false
+        if: github.event_name == 'push' || inputs.publish_proptest_compat
+        run: cargo publish -p protest-proptest-compat --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: true
 
       - name: Extract version from tag
+        if: github.event_name == 'push'
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v1
         with:
           name: Release v${{ steps.version.outputs.version }}
