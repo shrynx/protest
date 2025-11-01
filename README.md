@@ -1,10 +1,14 @@
-# ✊ Protest
+# ✊ Protest &emsp; [![Build Status]][actions] [![Latest Version]][crates.io] [![Documentation]][docs.rs]
+
+[Build Status]: https://img.shields.io/github/actions/workflow/status/shrynx/protest/ci.yml?branch=main
+[actions]: https://github.com/shrynx/protest/actions?query=branch%3Amain
+[Latest Version]: https://img.shields.io/crates/v/protest.svg
+[crates.io]: https://crates.io/crates/protest
+[Documentation]: https://docs.rs/protest/badge.svg
+[docs.rs]: https://docs.rs/protest
+
 
 **Property-Based Testing for Rust** - An ergonomic, powerful, and feature-rich property testing library with minimal boilerplate.
-
-[![Crates.io](https://img.shields.io/crates/v/protest.svg)](https://crates.io/crates/protest)
-[![Documentation](https://docs.rs/protest/badge.svg)](https://docs.rs/protest)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Features
 
@@ -28,18 +32,25 @@ Add Protest to your `Cargo.toml`:
 
 ```toml
 [dev-dependencies]
-protest = { version = "0.1", features = ["derive", "persistence"] }
-protest-extras = "0.1"       # Optional: Extra generators (network, datetime, text, etc.)
-protest-stateful = "0.1"     # Optional: Stateful property testing for state machines
-protest-criterion = "0.1"    # Optional: Property-based benchmarking with Criterion
-protest-insta = "0.1"        # Optional: Snapshot testing integration with Insta
-protest-proptest-compat = "0.1"  # Optional: Migration helpers from proptest
+protest = { version = "*", features = ["derive", "persistence"] }
 ```
 
-**CLI Tool** (optional, for managing test failures):
-```bash
-cargo install protest-cli
+**Optional Extensions:**
+```toml
+protest-extras = "*"           # Extra generators (network, datetime, text)
+protest-stateful = "*"         # Stateful testing & model checking
+protest-criterion = "*"        # Property-based benchmarking
+protest-insta = "*"            # Snapshot testing integration
+protest-proptest-compat = "*"  # Migration helpers from proptest
 ```
+
+See individual package READMEs for detailed documentation:
+- [protest-extras](protest-extras/) - Additional generators
+- [protest-stateful](protest-stateful/) - Stateful testing
+- [protest-criterion](protest-criterion/) - Benchmarking
+- [protest-insta](protest-insta/) - Snapshot testing
+- [protest-proptest-compat](protest-proptest-compat/) - Migration guide
+- [protest-cli](protest-cli/) - Command-line tool
 
 ### Ultra-Simple Example
 
@@ -315,16 +326,7 @@ let config = TestConfig {
 
 ## Failure Persistence & Replay
 
-Save failing test cases and automatically replay them for debugging and regression testing (requires `persistence` feature):
-
-```toml
-[dev-dependencies]
-protest = { version = "0.1", features = ["persistence"] }
-```
-
-### Automatic Replay
-
-Protest automatically saves failures and replays them on subsequent test runs:
+Save failing test cases and automatically replay them (requires `persistence` feature):
 
 ```rust
 use protest::*;
@@ -344,279 +346,24 @@ PropertyTestBuilder::new()
 ```
 
 **What happens:**
-1. **First run**: If test fails, seed and input are saved to `.protest/failures/my_critical_test/failure_seed_{seed}.json`
-2. **Subsequent runs**: Before running new test cases, saved failures are replayed using their seeds
-3. **Auto-cleanup**: If a replayed failure now passes, it's automatically deleted
-4. **Regression detection**: If failures still fail, they're reported with their seeds for easy reproduction
+1. Failed tests are automatically saved to `.protest/failures/`
+2. On subsequent runs, failures are replayed before running new cases
+3. Fixed failures are automatically cleaned up
 
-Output example:
-```
-🔄 Replaying 1 saved failure(s) for 'my_critical_test'...
-  Replay 1/1: seed=12345
-    ❌ Still failing: Property failed: Value too large
-
-⚠️  1 failure(s) still failing:
-    seed=12345
-```
-
-### Manual Failure Management
-
-```rust
-use protest::{FailureSnapshot, FailureCase, PersistenceConfig};
-
-// Custom persistence configuration
-let config = PersistenceConfig::enabled()
-    .with_failure_dir(".custom/failures")
-    .enable_corpus();
-
-PropertyTestBuilder::new()
-    .test_name("custom_test")
-    .persistence_config(config)
-    .iterations(1000)
-    .run(generator, property);
-
-// Load and inspect saved failures
-let snapshot = FailureSnapshot::new(".protest/failures")?;
-let failures = snapshot.load_failures("my_critical_test")?;
-
-for failure in failures {
-    println!("Seed: {}", failure.seed);
-    println!("Input: {}", failure.input);
-    println!("Error: {}", failure.error_message);
-    println!("Shrink steps: {}", failure.shrink_steps);
-}
-
-// Manually delete a fixed failure
-snapshot.delete_failure("my_critical_test", 12345)?;
-```
-
-### CLI Tool for Managing Failures
-
-Install the CLI tool to manage failures from the command line:
-
+Install the CLI tool for advanced failure management:
 ```bash
-cargo install --path protest-cli
-```
-
-Or use directly from the workspace:
-
-```bash
-cargo run -p protest-cli -- <command>
-```
-
-**List all tests with failures:**
-```bash
-protest list
-protest list --verbose  # Show detailed information
-```
-
-Output:
-```
-Found 2 test(s) with failures:
-
-  ● example_test (2 failures)
-  ● parser_test (1 failure)
-
-Tip: Use --verbose for more details
-```
-
-**Show details for a specific test:**
-```bash
-protest show example_test
-```
-
-Output:
-```
-Failures for test 'example_test':
-
-Failure #1
-  Seed: 12345
-  Input: 571962454
-  Error: Property failed: Value too large
-  Shrink steps: 15
-  Timestamp: 2025-01-02 16:00:00 UTC
-
-  Reproduce: cargo test -- --nocapture
-  Or use: .seed(12345)
-```
-
-**Show statistics:**
-```bash
-protest stats
-```
-
-Output:
-```
-Failure Statistics
-
-  Total tests with failures: 2
-  Total failures: 3
-  Average failures per test: 1.5
-  Total shrink steps: 26
-  Average shrink steps per failure: 8.7
-  Oldest failure: 2025-01-02 16:00:00 UTC
-  Newest failure: 2025-01-02 16:03:20 UTC
-```
-
-**Clean failures:**
-```bash
-# Delete a specific failure
-protest clean example_test --seed 12345
-
-# Delete all failures for a test
-protest clean example_test
-
-# Delete all failures (with confirmation)
-protest clean
-
-# Skip confirmation prompt
-protest clean -y
-```
-
-**Custom failure directory:**
-```bash
-protest --dir .custom/failures list
-```
-
-### Test Corpus
-
-Build a corpus of interesting test cases:
-
-```rust
-use protest::TestCorpus;
-
-let mut corpus = TestCorpus::new(".protest/corpus/parser")?;
-
-// Add interesting cases manually
-corpus.add_case(
-    r#"{"nested": {"deeply": {"value": 42}}}"#.to_string(),
-    "Complex nested JSON".to_string(),
-)?;
-
-// Load and use corpus cases in tests
-corpus.load_all()?;
-for case in corpus.cases() {
-    println!("Testing: {} - {}", case.reason, case.input);
-}
-```
-
-## CLI Tool
-
-The **protest-cli** tool provides a command-line interface for managing test failures:
-
-```bash
-# Install
 cargo install protest-cli
-
-# List all failures
-protest list
-
-# Show details for a test
-protest show my_test
-
-# View statistics
-protest stats
-
-# Clean failures
-protest clean my_test --seed 12345
-
-# Generate regression tests
-protest generate my_test
 ```
 
-See the [CLI documentation](protest-cli/README.md) for more details.
-
-### Regression Test Generation
-
-Automatically convert saved failures into permanent regression tests:
-
-```rust
-use protest::{RegressionConfig, RegressionGenerator, FailureSnapshot};
-
-let snapshot = FailureSnapshot::new(".protest/failures")?;
-let config = RegressionConfig::new("tests/regressions");
-let generator = RegressionGenerator::new(config);
-
-// Generate regression tests for all failures
-let files = generator.generate_all(&snapshot)?;
-
-for file in files {
-    println!("Generated: {}", file.display());
-}
-```
-
-Or use the CLI:
-```bash
-# Generate for specific test
-protest generate my_test
-
-# Generate for all tests
-protest generate
-
-# Custom output directory
-protest generate --output tests/custom_regressions
-```
-
-Generated test example:
-```rust
-/// Regression test for failure with seed 12345
-///
-/// Original error: Property failed: Value too large
-/// Input: 571962454
-/// Discovered: 2025-01-02 16:00:00 UTC
-#[test]
-fn regression_my_test_seed_12345() {
-    PropertyTestBuilder::new()
-        .iterations(1)
-        .seed(12345)
-        .run(your_generator, your_property)
-        .expect("Regression: failure should not reoccur");
-}
-```
-
-### Coverage-Guided Corpus Building
-
-Build a corpus of interesting test cases based on code coverage:
-
-```rust
-use protest::{CoverageCorpusConfig, CoverageCorpus, path_hash};
-
-let config = CoverageCorpusConfig::new(".protest/corpus")
-    .with_min_coverage(5.0)  // 5% minimum coverage increase
-    .with_max_size(1000)     // Max 1000 inputs
-    .auto_optimize(true);    // Auto-remove redundant cases
-
-let mut corpus = CoverageCorpus::new(config)?;
-
-// During property testing, track coverage
-property(|x: i32| {
-    // Your property logic here
-    let path = path_hash(&[x, /* execution path markers */]);
-
-    // Add to corpus if it increases coverage
-    corpus.try_add(&x, path)?;
-
-    Ok(())
-})
-```
-
-Get coverage statistics:
-```rust
-let stats = corpus.stats();
-println!("Total unique paths: {}", stats.total_paths);
-println!("Corpus size: {}", stats.corpus_size);
-```
+See the [CLI documentation](protest-cli/README.md) for complete details on managing failures, generating regression tests, and corpus building.
 
 ## Stateful Property Testing
 
-**protest-stateful** provides a powerful DSL for testing stateful systems like state machines, databases, and APIs.
-
-### Testing State Machines
+Test state machines, databases, and concurrent systems with **protest-stateful**:
 
 ```rust
 use protest_stateful::{Operation, prelude::*};
 
-// Use derive macro for automatic Operation implementation
 #[derive(Debug, Clone, Operation)]
 #[operation(state = "Vec<i32>")]
 enum StackOp {
@@ -626,108 +373,17 @@ enum StackOp {
 
     #[execute("state.pop()")]
     #[precondition("!state.is_empty()")]
-    #[weight(3)]
     Pop,
-
-    #[execute("state.clear()")]
-    #[weight(1)]
-    Clear,
-}
-
-#[test]
-fn test_stack_properties() {
-    let test = StatefulTest::new(vec![])
-        .invariant("bounded", |s: &Vec<i32>| s.len() <= 100);
-
-    let mut seq = OperationSequence::new();
-    seq.push(StackOp::Push(10));
-    seq.push(StackOp::Pop);
-
-    assert!(test.run(&seq).is_ok());
 }
 ```
 
-**Derive Macro Features:**
-- `#[operation(state = "Type")]` - Specify the state type
-- `#[execute("expression")]` - Define execution logic
-- `#[precondition("expression")]` - Add precondition checks
-- `#[weight(N)]` - Control operation frequency (higher = more frequent)
-- `#[description("text")]` - Custom operation descriptions
+**Features:**
+- State machine testing with derive macros
+- Model-based testing (compare against reference implementation)
+- Temporal properties (Always, Eventually)
+- Linearizability verification for concurrent systems
 
-### Model-Based Testing
-
-Compare your system against a reference implementation:
-
-```rust
-use protest_stateful::prelude::*;
-
-#[derive(Debug, Clone)]
-struct SimpleModel {
-    data: HashMap<String, String>,
-}
-
-impl Model for SimpleModel {
-    type SystemState = MyComplexSystem;
-    type Operation = MyOp;
-
-    fn execute_model(&mut self, op: &Self::Operation) {
-        // Execute on simple model
-    }
-
-    fn matches(&self, system: &Self::SystemState) -> bool {
-        // Compare model to actual system
-        true
-    }
-}
-```
-
-### Temporal Properties
-
-```rust
-use protest_stateful::temporal::*;
-
-let states = vec![/* execution trace */];
-
-// "Eventually" - property must hold at some point
-let prop = Eventually::new("reaches_goal", |s| s.is_goal());
-assert!(prop.check(&states));
-
-// "Always" - property must hold at every point
-let prop = Always::new("non_negative", |s| s.value >= 0);
-assert!(prop.check(&states));
-```
-
-### Linearizability Verification
-
-Verify that concurrent operations are linearizable:
-
-```rust
-use protest_stateful::concurrent::linearizability::*;
-use std::time::Instant;
-
-let mut history = History::new();
-let start = Instant::now();
-
-// Record concurrent operations
-let op1 = history.record_invocation(0, "enqueue(1)".to_string(), start);
-history.record_response(op1, "ok".to_string(), start + Duration::from_millis(10));
-
-// Check if execution is linearizable
-let mut checker = LinearizabilityChecker::new(queue_model);
-let result = checker.check(&history);
-
-match result {
-    LinearizabilityResult::Linearizable { order } => {
-        println!("✓ Operations are linearizable!");
-    }
-    LinearizabilityResult::NotLinearizable { reason, .. } => {
-        println!("✗ Found linearizability violation: {}", reason);
-        println!("{}", history.visualize());  // Visual timeline
-    }
-}
-```
-
-**Learn more:** See [protest-stateful README](protest-stateful/README.md) for full documentation.
+See [protest-stateful README](protest-stateful/README.md) for complete documentation.
 
 ## Examples
 
@@ -748,126 +404,58 @@ cargo run --example async_properties
 
 ## Property-Based Benchmarking
 
-**protest-criterion** provides integration with [Criterion](https://crates.io/crates/criterion) for property-based benchmarking.
-
-Benchmark your code with diverse, generated inputs to understand performance across the input space:
+Benchmark with diverse generated inputs using **protest-criterion**:
 
 ```rust
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::Criterion;
 use protest_criterion::PropertyBencher;
-use protest::primitives::{IntGenerator, VecGenerator};
 
 fn bench_sort(c: &mut Criterion) {
-    c.bench_property(
-        "vec sort",
-        VecGenerator::new(IntGenerator::new(0, 1000), 100, 1000),
-        |v: &Vec<i32>| {
-            let mut sorted = v.clone();
-            sorted.sort();
-        },
-        100, // Test with 100 different generated inputs
-    );
+    c.bench_property("vec sort", vec_generator, |v: &Vec<i32>| {
+        let mut sorted = v.clone();
+        sorted.sort();
+    }, 100);
 }
-
-criterion_group!(benches, bench_sort);
-criterion_main!(benches);
 ```
 
-**Benefits:**
-- 📊 **Performance distribution** - See how code performs across input space
-- 🔍 **Edge case discovery** - Find performance bottlenecks automatically
-- 📈 **Statistical analysis** - Leverage Criterion's regression detection
-- ⚡ **Realistic workloads** - Use generators for production-like data
-
-**Install:**
-```toml
-[dev-dependencies]
-protest-criterion = "0.1"
-criterion = "0.5"
-```
-
-See the [protest-criterion README](protest-criterion/README.md) for comprehensive documentation and examples.
+See [protest-criterion README](protest-criterion/README.md) for details.
 
 ## Property-Based Snapshot Testing
 
-**protest-insta** provides integration with [Insta](https://insta.rs/) for property-based snapshot testing.
-
-Test serialization and output format with diverse inputs while maintaining visual regression testing:
+Visual regression testing with **protest-insta**:
 
 ```rust
-use protest::{Generator, primitives::IntGenerator, config::GeneratorConfig};
 use protest_insta::PropertySnapshots;
-use serde::Serialize;
-use rand::SeedableRng;
-use rand::rngs::StdRng;
-
-#[derive(Serialize)]
-struct Report {
-    id: i32,
-    data: Vec<i32>,
-    summary: String,
-}
 
 #[test]
 fn test_report_snapshots() {
-    let mut rng = StdRng::seed_from_u64(42);
-    let config = GeneratorConfig::default();
-    let generator = IntGenerator::new(1, 100);
-
     let mut snapshots = PropertySnapshots::new("reports");
 
-    for _ in 0..5 {
-        let id = generator.generate(&mut rng, &config);
-        let report = Report {
-            id,
-            data: vec![id * 2, id * 3],
-            summary: format!("Report #{}", id),
-        };
+    for report in generate_reports() {
         snapshots.assert_json_snapshot(&report);
     }
 }
 ```
 
-**Benefits:**
-- 📸 **Visual regression** - Catch unexpected output changes
-- 🔍 **Edge case discovery** - Test serialization across input space
-- 📝 **Documentation** - Snapshots document behavior
-- 🔄 **Review workflow** - Use Insta's powerful review tools
-
-**Install:**
-```toml
-[dev-dependencies]
-protest-insta = "0.1"
-protest-proptest-compat = "0.1"  # Optional: Migration helpers from proptest
-insta = { version = "1.41", features = ["json", "yaml"] }
-```
-
-See the [protest-insta README](protest-insta/README.md) for comprehensive documentation and examples.
+See [protest-insta README](protest-insta/README.md) for details.
 
 
 ## Migrating from Proptest
 
-**protest-proptest-compat** provides helpers and guidance for migrating from proptest.
-
-Easily transition your tests from proptest to Protest with migration helpers and side-by-side examples:
+Use **protest-proptest-compat** for migration helpers:
 
 ### Before (Proptest)
 ```rust
-use proptest::prelude::*;
-
 proptest! {
     #[test]
     fn test_addition(a in 0..100i32, b in 0..100i32) {
-        assert!(a + b >= a);
-        assert!(a + b >= b);
+        assert!(a + b >= a && a + b >= b);
     }
 }
 ```
 
 ### After (Protest)
 ```rust
-use protest::*;
-
 #[test]
 fn test_addition() {
     property!(generator!(i32, 0, 100), |(a, b)| {
@@ -876,28 +464,7 @@ fn test_addition() {
 }
 ```
 
-**Migration helpers:**
-```rust
-use protest_proptest_compat::{range_to_generator, vec_generator, option_generator};
-use protest::primitives::IntGenerator;
-
-// Convert ranges
-let int_gen = range_to_generator(0, 100);
-
-// Create vector generators
-let vec_gen = vec_generator(IntGenerator::new(0, 10), 5, 10);
-
-// Create option generators
-let opt_gen = option_generator(IntGenerator::new(0, 100), 0.5);
-```
-
-**Install:**
-```toml
-[dev-dependencies]
-protest-proptest-compat = "0.1"
-```
-
-See the [protest-proptest-compat README](protest-proptest-compat/README.md) for the complete migration guide, common patterns, and examples.
+See [protest-proptest-compat README](protest-proptest-compat/README.md) for the complete migration guide.
 
 ## Feature Flags
 

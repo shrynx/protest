@@ -5,7 +5,7 @@ edition.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
-description = "property testing for rust"
+description = "An ergonomic, powerful, and feature-rich property testing library with minimal boilerplate."
 readme = "../README.md"
 
 [dependencies]
