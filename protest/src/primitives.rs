@@ -398,7 +398,7 @@ where
     }
 }
 
-/// Generator for HashMap<K, V> collections
+/// Generator for `HashMap<K, V>` collections
 #[derive(Debug)]
 pub struct HashMapGenerator<K, V, KG, VG> {
     key_generator: KG,
@@ -1458,7 +1458,7 @@ where
 // Option Generator
 // ============================================================================
 
-/// Generator for Option<T>
+/// Generator for `Option<T>`
 pub struct OptionGenerator<T, G> {
     inner_gen: G,
     some_probability: f64,
@@ -1845,7 +1845,7 @@ where
 // Result Generator
 // ============================================================================
 
-/// Generator for Result<T, E> values
+/// Generator for `Result<T, E>` values
 #[derive(Debug, Clone)]
 pub struct ResultGenerator<T, E, TG, EG> {
     ok_generator: TG,
@@ -2025,7 +2025,7 @@ mod new_generator_tests {
         assert!(map.len() <= 5);
         for (key, value) in &map {
             assert!(*key >= 1 && *key <= 10);
-            assert!(value.len() >= 1 && value.len() <= 5);
+            assert!(!value.is_empty() && value.len() <= 5);
         }
     }
 
@@ -2060,11 +2060,11 @@ mod new_generator_tests {
         for _ in 0..100 {
             match generator.generate(&mut rng, &config) {
                 Ok(n) => {
-                    assert!(n >= 1 && n <= 100);
+                    assert!((1..=100).contains(&n));
                     ok_count += 1;
                 }
                 Err(s) => {
-                    assert!(s.len() >= 1 && s.len() <= 10);
+                    assert!(!s.is_empty() && s.len() <= 10);
                     err_count += 1;
                 }
             }
@@ -2081,9 +2081,7 @@ mod new_generator_tests {
         let config = GeneratorConfig::default();
 
         let generator = UnitGenerator;
-        let result = generator.generate(&mut rng, &config);
-
-        assert_eq!(result, ());
+        generator.generate(&mut rng, &config);
     }
 
     #[test]

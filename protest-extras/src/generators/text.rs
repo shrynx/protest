@@ -491,7 +491,7 @@ mod tests {
 
             // Should contain multiple periods
             let period_count = paragraph.matches('.').count();
-            assert!(period_count >= 2 && period_count <= 5);
+            assert!((2..=5).contains(&period_count));
         }
     }
 }

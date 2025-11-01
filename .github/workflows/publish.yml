@@ -95,6 +95,16 @@ jobs:
           cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
         continue-on-error: false
 
+      # Wait a bit for protest-cli to be available on crates.io
+      - name: Wait for protest-cli to be available
+        run: sleep 30
+
+      - name: Publish protest-stateful to crates.io
+        run: |
+          cd protest-stateful
+          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: false
+
       - name: Extract version from tag
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
@@ -111,12 +121,14 @@ jobs:
             - [`protest-derive` v${{ steps.version.outputs.version }}](https://crates.io/crates/protest-derive/${{ steps.version.outputs.version }})
             - [`protest-extras` v${{ steps.version.outputs.version }}](https://crates.io/crates/protest-extras/${{ steps.version.outputs.version }})
             - [`protest-cli` v${{ steps.version.outputs.version }}](https://crates.io/crates/protest-cli/${{ steps.version.outputs.version }})
+            - [`protest-stateful` v${{ steps.version.outputs.version }}](https://crates.io/crates/protest-stateful/${{ steps.version.outputs.version }})
 
             ### Installation
             ```toml
             [dev-dependencies]
             protest = { version = "${{ steps.version.outputs.version }}", features = ["derive"] }
-            protest-extras = "${{ steps.version.outputs.version }}"  # Optional: Extra generators
+            protest-extras = "${{ steps.version.outputs.version }}"     # Optional: Extra generators
+            protest-stateful = "${{ steps.version.outputs.version }}"   # Optional: Stateful testing
             ```
 
             ### CLI Tool

@@ -341,9 +341,9 @@ mod tests {
         for _ in 0..10 {
             let vec = gen.generate(&mut rng, &config);
             assert!(!vec.is_empty(), "Vec should not be empty");
-            assert!(vec.len() >= 1 && vec.len() <= 10);
+            assert!(!vec.is_empty() && vec.len() <= 10);
             for &elem in &vec {
-                assert!(elem >= 1 && elem <= 100);
+                assert!((1..=100).contains(&elem));
             }
         }
     }

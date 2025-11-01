@@ -564,7 +564,7 @@ mod tests {
 
         // Should be getting closer to 42
         for value in shrunk {
-            assert!(value >= 42 && value <= 100);
+            assert!((42..=100).contains(&value));
         }
     }
 

@@ -195,13 +195,13 @@ impl PrimeNumberGenerator {
         if n == 2 {
             return true;
         }
-        if n % 2 == 0 {
+        if n.is_multiple_of(2) {
             return false;
         }
 
         let sqrt = (n as f64).sqrt() as u64;
         for i in (3..=sqrt).step_by(2) {
-            if n % i == 0 {
+            if n.is_multiple_of(i) {
                 return false;
             }
         }
@@ -335,7 +335,7 @@ mod tests {
 
         for _ in 0..20 {
             let n = gen.generate(&mut rng, &config);
-            assert!(n >= 1 && n <= 100);
+            assert!((1..=100).contains(&n));
             assert!(n > 0);
         }
     }
@@ -348,7 +348,7 @@ mod tests {
 
         for _ in 0..20 {
             let n = gen.generate(&mut rng, &config);
-            assert!(n >= 0 && n <= 100);
+            assert!((0..=100).contains(&n));
             assert_eq!(n % 2, 0, "Generated number {} should be even", n);
         }
     }
@@ -362,7 +362,7 @@ mod tests {
 
         for _ in 0..20 {
             let n = gen.generate(&mut rng, &config);
-            assert!(n >= 2 && n <= 98); // Adjusted to 2..98
+            assert!((2..=98).contains(&n)); // Adjusted to 2..98
             assert_eq!(n % 2, 0);
         }
     }
@@ -375,7 +375,7 @@ mod tests {
 
         for _ in 0..20 {
             let n = gen.generate(&mut rng, &config);
-            assert!(n >= 2 && n <= 50);
+            assert!((2..=50).contains(&n));
             assert!(PrimeNumberGenerator::is_prime(n));
         }
     }
@@ -407,7 +407,7 @@ mod tests {
 
         for _ in 0..20 {
             let p = gen.generate(&mut rng, &config);
-            assert!(p >= 0.0 && p <= 100.0);
+            assert!((0.0..=100.0).contains(&p));
         }
     }
 

@@ -100,7 +100,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build documentation
-        run: cargo doc --no-deps --all-features
+        run: cargo doc --workspace --all-features
+        env:
+          RUSTDOCFLAGS: "-D warnings"
 
   coverage:
     name: Code Coverage

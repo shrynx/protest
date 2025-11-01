@@ -632,6 +632,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "protest-stateful"
+version = "0.1.0"
+dependencies = [
+ "protest",
+ "rand",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"

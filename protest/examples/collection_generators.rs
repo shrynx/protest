@@ -108,7 +108,7 @@ impl Property<Result<i32, String>> for ResultVariantProperty {
         match result {
             Ok(n) => {
                 // For this test, we expect values in range
-                if n >= 0 && n <= 100 {
+                if (0..=100).contains(&n) {
                     Ok(())
                 } else {
                     Err(PropertyError::property_failed(format!(
@@ -261,8 +261,8 @@ fn main() {
     println!("   Generating unit type ()");
 
     let unit_gen = UnitGenerator;
-    let unit = unit_gen.generate(&mut rng, &config);
-    println!("   Sample: {:?}", unit);
+    unit_gen.generate(&mut rng, &config);
+    println!("   Sample: {:?}", ());
     println!("   Unit type has only one value - always ()\n");
 
     // Example 7: Array Generator

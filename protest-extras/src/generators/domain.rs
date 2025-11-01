@@ -10,7 +10,7 @@
 
 use protest::{Generator, GeneratorConfig};
 use rand::Rng;
-use std::path::PathBuf;
+use std::path::{PathBuf, MAIN_SEPARATOR};
 
 // ============================================================================
 // Hex Generator
@@ -255,7 +255,20 @@ impl Generator<PathBuf> for PathGenerator {
         let mut path = PathBuf::new();
 
         if self.absolute {
-            path.push("/");
+            // Use platform-appropriate root
+            // Unix: "/", Windows: "C:\", others: "/"
+            #[cfg(target_family = "unix")]
+            {
+                path.push(MAIN_SEPARATOR.to_string());
+            }
+            #[cfg(target_family = "windows")]
+            {
+                path.push(format!("C:{}", MAIN_SEPARATOR));
+            }
+            #[cfg(not(any(target_family = "unix", target_family = "windows")))]
+            {
+                path.push(MAIN_SEPARATOR.to_string());
+            }
         }
 
         for _ in 0..depth {
@@ -447,7 +460,7 @@ mod tests {
         for _ in 0..10 {
             let path = gen.generate(&mut rng, &config);
             let components: Vec<_> = path.components().collect();
-            assert!(components.len() >= 1 && components.len() <= 4);
+            assert!(!components.is_empty() && components.len() <= 4);
 
             // Check each component is valid
             for component in path.iter() {

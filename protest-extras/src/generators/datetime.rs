@@ -256,7 +256,7 @@ mod tests {
 
         for _ in 0..10 {
             let ts = gen.generate(&mut rng, &config);
-            assert!(ts >= 0 && ts <= 1_000_000);
+            assert!((0..=1_000_000).contains(&ts));
         }
     }
 

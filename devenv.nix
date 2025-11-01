@@ -7,7 +7,12 @@
 }:
 
 {
-  languages.rust.enable = true;
+  languages.rust = {
+    enable = true;
+    # Using nixpkgs stable Rust (currently tracks stable channel)
+    # For explicit channel control, add rust-overlay input:
+    # $ devenv inputs add rust-overlay github:oxalica/rust-overlay --follows nixpkgs
+  };
 
   git-hooks.hooks = {
     rustfmt = {

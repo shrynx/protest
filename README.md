@@ -29,7 +29,8 @@ Add Protest to your `Cargo.toml`:
 ```toml
 [dev-dependencies]
 protest = { version = "0.1", features = ["derive", "persistence"] }
-protest-extras = "0.1"  # Optional: Extra generators (network, datetime, text, etc.)
+protest-extras = "0.1"       # Optional: Extra generators (network, datetime, text, etc.)
+protest-stateful = "0.1"     # Optional: Stateful property testing for state machines
 ```
 
 **CLI Tool** (optional, for managing test failures):
@@ -603,6 +604,117 @@ println!("Total unique paths: {}", stats.total_paths);
 println!("Corpus size: {}", stats.corpus_size);
 ```
 
+## Stateful Property Testing
+
+**protest-stateful** provides a powerful DSL for testing stateful systems like state machines, databases, and APIs.
+
+### Testing State Machines
+
+```rust
+use protest_stateful::prelude::*;
+
+#[derive(Debug, Clone)]
+struct Stack { items: Vec<i32> }
+
+#[derive(Debug, Clone)]
+enum StackOp {
+    Push(i32),
+    Pop,
+}
+
+impl Operation for StackOp {
+    type State = Stack;
+
+    fn execute(&self, state: &mut Self::State) {
+        match self {
+            StackOp::Push(v) => state.items.push(*v),
+            StackOp::Pop => { state.items.pop(); }
+        }
+    }
+
+    fn precondition(&self, state: &Self::State) -> bool {
+        match self {
+            StackOp::Pop => !state.items.is_empty(),
+            _ => true,
+        }
+    }
+}
+
+#[test]
+fn test_stack_properties() {
+    let test = StatefulTest::new(Stack { items: vec![] })
+        .invariant("length_non_negative", |s| s.items.len() >= 0);
+
+    let mut seq = OperationSequence::new();
+    seq.push(StackOp::Push(10));
+    seq.push(StackOp::Pop);
+
+    assert!(test.run(&seq).is_ok());
+}
+```
+
+### Model-Based Testing
+
+Compare your system against a reference implementation:
+
+```rust
+use protest_stateful::prelude::*;
+
+#[derive(Debug, Clone)]
+struct SimpleModel {
+    data: HashMap<String, String>,
+}
+
+impl Model for SimpleModel {
+    type SystemState = MyComplexSystem;
+    type Operation = MyOp;
+
+    fn execute_model(&mut self, op: &Self::Operation) {
+        // Execute on simple model
+    }
+
+    fn matches(&self, system: &Self::SystemState) -> bool {
+        // Compare model to actual system
+        true
+    }
+}
+```
+
+### Temporal Properties
+
+```rust
+use protest_stateful::temporal::*;
+
+let states = vec![/* execution trace */];
+
+// "Eventually" - property must hold at some point
+let prop = Eventually::new("reaches_goal", |s| s.is_goal());
+assert!(prop.check(&states));
+
+// "Always" - property must hold at every point
+let prop = Always::new("non_negative", |s| s.value >= 0);
+assert!(prop.check(&states));
+```
+
+### Concurrent Testing
+
+Test parallel operations on concurrent data structures:
+
+```rust
+use protest_stateful::concurrent::*;
+
+let config = ConcurrentConfig {
+    thread_count: 4,
+    operations_per_thread: 100,
+    check_linearizability: true,
+};
+
+let result = run_concurrent(initial_state, operations, config);
+assert!(result.is_ok());
+```
+
+**Learn more:** See [protest-stateful README](protest-stateful/README.md) for full documentation.
+
 ## Examples
 
 The repository includes comprehensive examples:
@@ -686,12 +798,12 @@ Inspired by:
 
 ## Roadmap
 
-- [ ] More built-in generators
-- [ ] Enhanced shrinking strategies
+- [x] More built-in generators (protest-extras)
+- [x] Enhanced shrinking strategies (protest-extras)
+- [x] Property test replay and persistence
+- [x] Stateful property testing DSL (protest-stateful)
 - [ ] Integration with more test frameworks
-- [ ] Property test replay and persistence
-- [ ] Coverage-guided generation
-- [ ] Stateful property testing DSL
+- [ ] Coverage-guided generation (advanced)
 
 ---
 

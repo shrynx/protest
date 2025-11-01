@@ -1,0 +1,36 @@
+[package]
+name = "protest-stateful"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Stateful property testing DSL for Protest - test state machines, concurrent systems, and complex APIs"
+keywords = ["testing", "property-based", "stateful", "quickcheck", "model-based"]
+categories = ["development-tools::testing"]
+readme = "README.md"
+
+[dependencies]
+protest = { path = "../protest", version = "0.1" }
+rand = "0.8"
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
+
+[dev-dependencies]
+protest = { path = "../protest", features = ["derive"] }
+
+[features]
+default = []
+persistence = ["serde", "serde_json"]
+
+[[example]]
+name = "stack"
+path = "examples/stack.rs"
+
+[[example]]
+name = "key_value_store"
+path = "examples/key_value_store.rs"
+
+[[example]]
+name = "concurrent_queue"
+path = "examples/concurrent_queue.rs"
