@@ -14,10 +14,15 @@ num-traits.workspace = true
 crossbeam.workspace = true
 num_cpus.workspace = true
 protest-derive = { version = "0.1.0", path = "../protest-derive", optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
+chrono = { version = "0.4", optional = true }
 
 [features]
 default = ["derive"]
 derive = ["protest-derive"]
+persistence = ["serde", "serde_json", "chrono"]
 
 [dev-dependencies]
 tokio = { version = "1.0", features = ["rt-multi-thread", "time", "macros"] }
+tempfile = "3.0"

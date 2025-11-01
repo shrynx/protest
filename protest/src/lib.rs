@@ -27,13 +27,19 @@
 // Public modules
 pub mod arbitrary;
 pub mod config;
+#[cfg(feature = "persistence")]
+pub mod coverage;
 pub mod ergonomic;
 pub mod error;
 pub mod execution;
 pub mod generator;
 pub mod performance;
+#[cfg(feature = "persistence")]
+pub mod persistence;
 pub mod primitives;
 pub mod property;
+#[cfg(feature = "persistence")]
+pub mod regression;
 pub mod rng;
 pub mod shrink;
 pub mod statistics;
@@ -60,8 +66,16 @@ pub use performance::{
 };
 // Note: ParallelAsyncPropertyTest and check_async_parallel have been removed
 // to keep the library runtime-agnostic. Use check_async with your own async runtime instead.
+#[cfg(feature = "persistence")]
+pub use coverage::{
+    CoverageCorpus, CoverageCorpusConfig, CoverageStats, CoverageTracker, path_hash,
+};
+#[cfg(feature = "persistence")]
+pub use persistence::{CorpusCase, FailureCase, FailureSnapshot, PersistenceConfig, TestCorpus};
 pub use primitives::*;
 pub use property::{AsyncProperty, Property};
+#[cfg(feature = "persistence")]
+pub use regression::{RegressionConfig, RegressionGenerator};
 pub use rng::{DefaultRngProvider, RngManager, RngProvider, create_rng, create_seeded_rng};
 pub use shrink::{AsyncShrinkEngine, ShrinkConfig, ShrinkEngine, ShrinkResult, Shrinkable};
 pub use statistics::{CoverageThresholdsBuilder, StatisticsCollector};

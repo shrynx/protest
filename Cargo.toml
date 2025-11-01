@@ -1,5 +1,5 @@
 [workspace]
-members = ["protest", "protest-derive", "protest-extras"]
+members = ["protest", "protest-derive", "protest-extras", "protest-cli"]
 resolver = "2"
 
 [workspace.package]

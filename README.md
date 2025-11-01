@@ -14,6 +14,8 @@
 - 📦 **Declarative Macros** - `property!`, `assert_property!`, `generator!`
 - ⚡ **Async Support** - First-class async property testing
 - 🔄 **Smart Shrinking** - Automatic minimal counterexample finding
+- 💾 **Failure Persistence** - Save and replay failing test cases (optional)
+- 🔧 **CLI Tool** - Manage failures from the command line ([protest-cli](protest-cli/))
 - 🎨 **Fluent Builders** - Chain configuration methods naturally
 - 🧪 **Common Patterns** - Built-in helpers for mathematical properties
 - 🔀 **Parallel Execution** - Run tests in parallel for speed
@@ -26,8 +28,13 @@ Add Protest to your `Cargo.toml`:
 
 ```toml
 [dev-dependencies]
-protest = { version = "0.1", features = ["derive"] }
+protest = { version = "0.1", features = ["derive", "persistence"] }
 protest-extras = "0.1"  # Optional: Extra generators (network, datetime, text, etc.)
+```
+
+**CLI Tool** (optional, for managing test failures):
+```bash
+cargo install protest-cli
 ```
 
 ### Ultra-Simple Example
@@ -302,6 +309,300 @@ let config = TestConfig {
 };
 ```
 
+## Failure Persistence & Replay
+
+Save failing test cases and automatically replay them for debugging and regression testing (requires `persistence` feature):
+
+```toml
+[dev-dependencies]
+protest = { version = "0.1", features = ["persistence"] }
+```
+
+### Automatic Replay
+
+Protest automatically saves failures and replays them on subsequent test runs:
+
+```rust
+use protest::*;
+
+PropertyTestBuilder::new()
+    .test_name("my_critical_test")
+    .persist_failures()  // Enable automatic failure saving & replay
+    .iterations(10000)
+    .run(u32::arbitrary(), |x: u32| {
+        // Your property test
+        if x > 1000 {
+            Err("Value too large")
+        } else {
+            Ok(())
+        }
+    });
+```
+
+**What happens:**
+1. **First run**: If test fails, seed and input are saved to `.protest/failures/my_critical_test/failure_seed_{seed}.json`
+2. **Subsequent runs**: Before running new test cases, saved failures are replayed using their seeds
+3. **Auto-cleanup**: If a replayed failure now passes, it's automatically deleted
+4. **Regression detection**: If failures still fail, they're reported with their seeds for easy reproduction
+
+Output example:
+```
+🔄 Replaying 1 saved failure(s) for 'my_critical_test'...
+  Replay 1/1: seed=12345
+    ❌ Still failing: Property failed: Value too large
+
+⚠️  1 failure(s) still failing:
+    seed=12345
+```
+
+### Manual Failure Management
+
+```rust
+use protest::{FailureSnapshot, FailureCase, PersistenceConfig};
+
+// Custom persistence configuration
+let config = PersistenceConfig::enabled()
+    .with_failure_dir(".custom/failures")
+    .enable_corpus();
+
+PropertyTestBuilder::new()
+    .test_name("custom_test")
+    .persistence_config(config)
+    .iterations(1000)
+    .run(generator, property);
+
+// Load and inspect saved failures
+let snapshot = FailureSnapshot::new(".protest/failures")?;
+let failures = snapshot.load_failures("my_critical_test")?;
+
+for failure in failures {
+    println!("Seed: {}", failure.seed);
+    println!("Input: {}", failure.input);
+    println!("Error: {}", failure.error_message);
+    println!("Shrink steps: {}", failure.shrink_steps);
+}
+
+// Manually delete a fixed failure
+snapshot.delete_failure("my_critical_test", 12345)?;
+```
+
+### CLI Tool for Managing Failures
+
+Install the CLI tool to manage failures from the command line:
+
+```bash
+cargo install --path protest-cli
+```
+
+Or use directly from the workspace:
+
+```bash
+cargo run -p protest-cli -- <command>
+```
+
+**List all tests with failures:**
+```bash
+protest list
+protest list --verbose  # Show detailed information
+```
+
+Output:
+```
+Found 2 test(s) with failures:
+
+  ● example_test (2 failures)
+  ● parser_test (1 failure)
+
+Tip: Use --verbose for more details
+```
+
+**Show details for a specific test:**
+```bash
+protest show example_test
+```
+
+Output:
+```
+Failures for test 'example_test':
+
+Failure #1
+  Seed: 12345
+  Input: 571962454
+  Error: Property failed: Value too large
+  Shrink steps: 15
+  Timestamp: 2025-01-02 16:00:00 UTC
+
+  Reproduce: cargo test -- --nocapture
+  Or use: .seed(12345)
+```
+
+**Show statistics:**
+```bash
+protest stats
+```
+
+Output:
+```
+Failure Statistics
+
+  Total tests with failures: 2
+  Total failures: 3
+  Average failures per test: 1.5
+  Total shrink steps: 26
+  Average shrink steps per failure: 8.7
+  Oldest failure: 2025-01-02 16:00:00 UTC
+  Newest failure: 2025-01-02 16:03:20 UTC
+```
+
+**Clean failures:**
+```bash
+# Delete a specific failure
+protest clean example_test --seed 12345
+
+# Delete all failures for a test
+protest clean example_test
+
+# Delete all failures (with confirmation)
+protest clean
+
+# Skip confirmation prompt
+protest clean -y
+```
+
+**Custom failure directory:**
+```bash
+protest --dir .custom/failures list
+```
+
+### Test Corpus
+
+Build a corpus of interesting test cases:
+
+```rust
+use protest::TestCorpus;
+
+let mut corpus = TestCorpus::new(".protest/corpus/parser")?;
+
+// Add interesting cases manually
+corpus.add_case(
+    r#"{"nested": {"deeply": {"value": 42}}}"#.to_string(),
+    "Complex nested JSON".to_string(),
+)?;
+
+// Load and use corpus cases in tests
+corpus.load_all()?;
+for case in corpus.cases() {
+    println!("Testing: {} - {}", case.reason, case.input);
+}
+```
+
+## CLI Tool
+
+The **protest-cli** tool provides a command-line interface for managing test failures:
+
+```bash
+# Install
+cargo install protest-cli
+
+# List all failures
+protest list
+
+# Show details for a test
+protest show my_test
+
+# View statistics
+protest stats
+
+# Clean failures
+protest clean my_test --seed 12345
+
+# Generate regression tests
+protest generate my_test
+```
+
+See the [CLI documentation](protest-cli/README.md) for more details.
+
+### Regression Test Generation
+
+Automatically convert saved failures into permanent regression tests:
+
+```rust
+use protest::{RegressionConfig, RegressionGenerator, FailureSnapshot};
+
+let snapshot = FailureSnapshot::new(".protest/failures")?;
+let config = RegressionConfig::new("tests/regressions");
+let generator = RegressionGenerator::new(config);
+
+// Generate regression tests for all failures
+let files = generator.generate_all(&snapshot)?;
+
+for file in files {
+    println!("Generated: {}", file.display());
+}
+```
+
+Or use the CLI:
+```bash
+# Generate for specific test
+protest generate my_test
+
+# Generate for all tests
+protest generate
+
+# Custom output directory
+protest generate --output tests/custom_regressions
+```
+
+Generated test example:
+```rust
+/// Regression test for failure with seed 12345
+///
+/// Original error: Property failed: Value too large
+/// Input: 571962454
+/// Discovered: 2025-01-02 16:00:00 UTC
+#[test]
+fn regression_my_test_seed_12345() {
+    PropertyTestBuilder::new()
+        .iterations(1)
+        .seed(12345)
+        .run(your_generator, your_property)
+        .expect("Regression: failure should not reoccur");
+}
+```
+
+### Coverage-Guided Corpus Building
+
+Build a corpus of interesting test cases based on code coverage:
+
+```rust
+use protest::{CoverageCorpusConfig, CoverageCorpus, path_hash};
+
+let config = CoverageCorpusConfig::new(".protest/corpus")
+    .with_min_coverage(5.0)  // 5% minimum coverage increase
+    .with_max_size(1000)     // Max 1000 inputs
+    .auto_optimize(true);    // Auto-remove redundant cases
+
+let mut corpus = CoverageCorpus::new(config)?;
+
+// During property testing, track coverage
+property(|x: i32| {
+    // Your property logic here
+    let path = path_hash(&[x, /* execution path markers */]);
+
+    // Add to corpus if it increases coverage
+    corpus.try_add(&x, path)?;
+
+    Ok(())
+})
+```
+
+Get coverage statistics:
+```rust
+let stats = corpus.stats();
+println!("Total unique paths: {}", stats.total_paths);
+println!("Corpus size: {}", stats.corpus_size);
+```
+
 ## Examples
 
 The repository includes comprehensive examples:
@@ -324,10 +625,11 @@ cargo run --example async_properties
 ```toml
 [features]
 default = ["derive"]
-derive = ["protest-derive"]  # Derive macros
+derive = ["protest-derive"]    # Derive macros for Generator trait
+persistence = ["serde", "serde_json"]  # Failure persistence & replay
 ```
 
-Protest has minimal dependencies and no required runtime dependencies. Async support is built-in and runtime-agnostic.
+Protest has minimal dependencies and no required runtime dependencies. Async support is built-in and runtime-agnostic. The `persistence` feature is optional and adds `serde` for JSON serialization of test failures.
 
 ## Comparison with Other Libraries
 
@@ -342,6 +644,8 @@ Protest has minimal dependencies and no required runtime dependencies. Async sup
 | Pattern Helpers | ✅ | ❌ | ❌ |
 | Shrinking | ✅ | ✅ | ✅ |
 | Statistics | ✅ | Partial | ❌ |
+| Failure Persistence | ✅ | Partial | ❌ |
+| Test Corpus | ✅ | ❌ | ❌ |
 
 ## Documentation
 
@@ -354,6 +658,7 @@ Full documentation is available on [docs.rs](https://docs.rs/protest).
 - `protest::generator` - Generator trait and utilities
 - `protest::property` - Property trait and execution
 - `protest::shrink` - Shrinking infrastructure
+- `protest::persistence` - Failure persistence and replay (optional)
 - `protest::config` - Configuration types
 - `protest::statistics` - Coverage and statistics
 

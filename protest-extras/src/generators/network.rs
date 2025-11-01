@@ -392,8 +392,8 @@ mod tests {
             let parts: Vec<&str> = ip.split('.').collect();
             assert_eq!(parts.len(), 4);
             for part in parts {
-                let num: u8 = part.parse().unwrap();
-                assert!(num <= 255);
+                // Parse as u8 to verify each octet is valid (0-255)
+                let _num: u8 = part.parse().unwrap();
             }
         }
     }

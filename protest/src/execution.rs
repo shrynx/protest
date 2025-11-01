@@ -21,6 +21,10 @@ pub struct PropertyTest<T, G, P> {
     config: TestConfig,
     error_reporter: ErrorReporter,
     statistics_collector: Option<StatisticsCollector>,
+    #[cfg(feature = "persistence")]
+    persistence_config: Option<crate::persistence::PersistenceConfig>,
+    #[cfg(feature = "persistence")]
+    test_name: Option<String>,
     _phantom: PhantomData<T>,
 }
 
@@ -48,6 +52,10 @@ where
             config,
             error_reporter: ErrorReporter::new(),
             statistics_collector: Some(StatisticsCollector::new()),
+            #[cfg(feature = "persistence")]
+            persistence_config: None,
+            #[cfg(feature = "persistence")]
+            test_name: None,
             _phantom: PhantomData,
         }
     }
@@ -65,6 +73,10 @@ where
             config,
             error_reporter,
             statistics_collector: Some(StatisticsCollector::new()),
+            #[cfg(feature = "persistence")]
+            persistence_config: None,
+            #[cfg(feature = "persistence")]
+            test_name: None,
             _phantom: PhantomData,
         }
     }
@@ -82,6 +94,10 @@ where
             config,
             error_reporter: ErrorReporter::new(),
             statistics_collector,
+            #[cfg(feature = "persistence")]
+            persistence_config: None,
+            #[cfg(feature = "persistence")]
+            test_name: None,
             _phantom: PhantomData,
         }
     }
@@ -100,6 +116,33 @@ where
             config,
             error_reporter,
             statistics_collector,
+            #[cfg(feature = "persistence")]
+            persistence_config: None,
+            #[cfg(feature = "persistence")]
+            test_name: None,
+            _phantom: PhantomData,
+        }
+    }
+
+    /// Create a new property test with full configuration including persistence
+    #[cfg(feature = "persistence")]
+    pub fn with_full_config(
+        generator: G,
+        property: P,
+        config: TestConfig,
+        error_reporter: ErrorReporter,
+        statistics_collector: Option<StatisticsCollector>,
+        persistence_config: Option<crate::persistence::PersistenceConfig>,
+        test_name: Option<String>,
+    ) -> Self {
+        Self {
+            generator,
+            property,
+            config,
+            error_reporter,
+            statistics_collector,
+            persistence_config,
+            test_name,
             _phantom: PhantomData,
         }
     }
@@ -116,6 +159,20 @@ where
             .statistics_collector
             .take()
             .unwrap_or_else(StatisticsCollector::disabled);
+
+        // Replay previously saved failures first
+        #[cfg(feature = "persistence")]
+        {
+            if let Some(persistence_cfg) = self.persistence_config.clone()
+                && persistence_cfg.replay_failures
+            {
+                let test_name = self
+                    .test_name
+                    .clone()
+                    .unwrap_or_else(|| "unnamed_test".to_string());
+                self.replay_saved_failures(&test_name, &persistence_cfg);
+            }
+        }
 
         for iteration in 0..self.config.iterations {
             // Start timing generation
@@ -201,6 +258,17 @@ where
                     {
                         eprintln!("{}", shrink_result.2.visualize());
                         eprintln!("{}", shrink_result.2.statistics());
+                    }
+
+                    // Save failure if persistence is enabled
+                    #[cfg(feature = "persistence")]
+                    {
+                        if let Some(ref persistence_cfg) = self.persistence_config
+                            && persistence_cfg.persist_failures
+                        {
+                            let test_name = self.test_name.as_deref().unwrap_or("unnamed_test");
+                            Self::save_failure_static(&failure, test_name, persistence_cfg);
+                        }
                     }
 
                     return Err(failure);
@@ -347,6 +415,132 @@ where
             (Some(current_input), shrink_steps, progress)
         } else {
             (None, 0, progress)
+        }
+    }
+
+    /// Save a test failure to persistent storage
+    #[cfg(feature = "persistence")]
+    fn save_failure_static(
+        failure: &TestFailure<T>,
+        test_name: &str,
+        persistence_cfg: &crate::persistence::PersistenceConfig,
+    ) {
+        match crate::persistence::FailureSnapshot::new(&persistence_cfg.failure_dir) {
+            Ok(snapshot) => {
+                let seed = failure.config.seed.unwrap_or(0);
+
+                // Store Debug representation for now
+                // TODO: Enhance to serialize when T: Serialize
+                let input_str = format!("{:?}", failure.original_input);
+
+                let failure_case = crate::persistence::FailureCase::new(
+                    seed,
+                    input_str,
+                    failure.error.to_string(),
+                    failure.shrink_steps,
+                );
+
+                match snapshot.save_failure(test_name, &failure_case) {
+                    Ok(path) => {
+                        eprintln!("💾 Failure saved to: {}", path.display());
+                        eprintln!("   💡 Tip: Use .seed({}) to reproduce this failure", seed);
+                    }
+                    Err(e) => {
+                        eprintln!("⚠️  Failed to save failure: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("⚠️  Failed to create failure snapshot: {}", e);
+            }
+        }
+    }
+
+    /// Replay previously saved failures to verify they're fixed
+    #[cfg(feature = "persistence")]
+    fn replay_saved_failures(
+        &mut self,
+        test_name: &str,
+        persistence_cfg: &crate::persistence::PersistenceConfig,
+    ) {
+        match crate::persistence::FailureSnapshot::new(&persistence_cfg.failure_dir) {
+            Ok(snapshot) => {
+                match snapshot.load_failures(test_name) {
+                    Ok(failures) => {
+                        if !failures.is_empty() {
+                            eprintln!(
+                                "🔄 Replaying {} saved failure(s) for '{}'...",
+                                failures.len(),
+                                test_name
+                            );
+
+                            let mut still_failing = Vec::new();
+                            let mut now_passing = Vec::new();
+
+                            for (idx, failure_case) in failures.iter().enumerate() {
+                                eprintln!(
+                                    "  Replay {}/{}: seed={}",
+                                    idx + 1,
+                                    failures.len(),
+                                    failure_case.seed
+                                );
+
+                                // Create RNG with the saved seed
+                                let mut rng = create_seeded_rng(failure_case.seed);
+
+                                // Generate input with the seed
+                                let input = self
+                                    .generator
+                                    .generate(&mut rng, &self.config.generator_config);
+
+                                // Test if it still fails
+                                match self.property.test(input.clone()) {
+                                    Ok(_) => {
+                                        eprintln!("    ✅ Now passing!");
+                                        now_passing.push(failure_case.seed);
+                                    }
+                                    Err(err) => {
+                                        eprintln!("    ❌ Still failing: {}", err);
+                                        still_failing.push(failure_case.seed);
+                                    }
+                                }
+                            }
+
+                            // Summary
+                            eprintln!();
+                            if !still_failing.is_empty() {
+                                eprintln!("⚠️  {} failure(s) still failing:", still_failing.len());
+                                for seed in &still_failing {
+                                    eprintln!("    seed={}", seed);
+                                }
+                            }
+
+                            if !now_passing.is_empty() {
+                                eprintln!(
+                                    "✅ {} failure(s) now passing (consider deleting):",
+                                    now_passing.len()
+                                );
+                                for seed in &now_passing {
+                                    eprintln!("    seed={}", seed);
+                                }
+
+                                // Auto-delete fixed failures if configured
+                                for seed in &now_passing {
+                                    let _ = snapshot.delete_failure(test_name, *seed);
+                                }
+                                eprintln!("   Automatically cleaned up passing failures.");
+                            }
+                            eprintln!();
+                        }
+                    }
+                    Err(_) => {
+                        // No failures saved yet, continue normally
+                    }
+                }
+            }
+            Err(_) => {
+                // Failed to access snapshot directory, continue normally
+            }
         }
     }
 }
@@ -723,6 +917,10 @@ pub struct PropertyTestBuilder<T> {
     config: TestConfig,
     error_reporter: ErrorReporter,
     statistics_collector: Option<StatisticsCollector>,
+    #[cfg(feature = "persistence")]
+    persistence_config: Option<crate::persistence::PersistenceConfig>,
+    #[cfg(feature = "persistence")]
+    test_name: Option<String>,
     _phantom: PhantomData<T>,
 }
 
@@ -733,6 +931,10 @@ impl<T: 'static> PropertyTestBuilder<T> {
             config: TestConfig::default(),
             error_reporter: ErrorReporter::new(),
             statistics_collector: Some(StatisticsCollector::new()),
+            #[cfg(feature = "persistence")]
+            persistence_config: None,
+            #[cfg(feature = "persistence")]
+            test_name: None,
             _phantom: PhantomData,
         }
     }
@@ -803,6 +1005,27 @@ impl<T: 'static> PropertyTestBuilder<T> {
         self
     }
 
+    /// Enable failure persistence with default configuration
+    #[cfg(feature = "persistence")]
+    pub fn persist_failures(mut self) -> Self {
+        self.persistence_config = Some(crate::persistence::PersistenceConfig::enabled());
+        self
+    }
+
+    /// Set a custom persistence configuration
+    #[cfg(feature = "persistence")]
+    pub fn persistence_config(mut self, config: crate::persistence::PersistenceConfig) -> Self {
+        self.persistence_config = Some(config);
+        self
+    }
+
+    /// Set the test name (used for organizing saved failures)
+    #[cfg(feature = "persistence")]
+    pub fn test_name<S: Into<String>>(mut self, name: S) -> Self {
+        self.test_name = Some(name.into());
+        self
+    }
+
     /// Run the property test with the configured parameters
     pub fn run<G, P>(self, generator: G, property: P) -> PropertyResult<T>
     where
@@ -810,14 +1033,31 @@ impl<T: 'static> PropertyTestBuilder<T> {
         G: Generator<T>,
         P: Property<T>,
     {
-        let test = PropertyTest::with_error_reporter_and_statistics(
-            generator,
-            property,
-            self.config,
-            self.error_reporter,
-            self.statistics_collector,
-        );
-        test.run()
+        #[cfg(feature = "persistence")]
+        {
+            let test = PropertyTest::with_full_config(
+                generator,
+                property,
+                self.config,
+                self.error_reporter,
+                self.statistics_collector,
+                self.persistence_config,
+                self.test_name,
+            );
+            test.run()
+        }
+
+        #[cfg(not(feature = "persistence"))]
+        {
+            let test = PropertyTest::with_error_reporter_and_statistics(
+                generator,
+                property,
+                self.config,
+                self.error_reporter,
+                self.statistics_collector,
+            );
+            test.run()
+        }
     }
 
     /// Run the async property test with the configured parameters

@@ -13,3 +13,6 @@ devenv.local.nix
 # ai tools
 .kiro
 .claude
+
+# protest
+.protest
