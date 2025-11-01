@@ -1,0 +1,31 @@
+[package]
+name = "protest-criterion"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Property-based benchmarking integration between Protest and Criterion"
+keywords = ["testing", "property-based", "benchmarking", "criterion", "performance"]
+categories = ["development-tools::testing", "development-tools::profiling"]
+readme = "README.md"
+
+[dependencies]
+protest = { path = "../protest", version = "0.1" }
+criterion = "0.5"
+rand = "0.8"
+
+[dev-dependencies]
+protest = { path = "../protest", features = ["derive"] }
+
+[[bench]]
+name = "example_benchmarks"
+harness = false
+
+[[bench]]
+name = "sorting_benchmarks"
+harness = false
+
+[[bench]]
+name = "string_benchmarks"
+harness = false

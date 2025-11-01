@@ -1,5 +1,5 @@
 [workspace]
-members = ["protest", "protest-derive", "protest-extras", "protest-cli", "protest-stateful", "protest-stateful-derive"]
+members = ["protest", "protest-derive", "protest-extras", "protest-cli", "protest-stateful", "protest-stateful-derive", "protest-criterion"]
 resolver = "2"
 
 [workspace.package]
@@ -27,3 +27,4 @@ protest-derive = { path = "protest-derive" }
 protest-extras = { path = "protest-extras" }
 protest-stateful = { path = "protest-stateful" }
 protest-stateful-derive = { path = "protest-stateful-derive" }
+protest-criterion = { path = "protest-criterion" }

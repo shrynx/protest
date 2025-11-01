@@ -31,6 +31,7 @@ Add Protest to your `Cargo.toml`:
 protest = { version = "0.1", features = ["derive", "persistence"] }
 protest-extras = "0.1"       # Optional: Extra generators (network, datetime, text, etc.)
 protest-stateful = "0.1"     # Optional: Stateful property testing for state machines
+protest-criterion = "0.1"    # Optional: Property-based benchmarking with Criterion
 ```
 
 **CLI Tool** (optional, for managing test failures):
@@ -743,6 +744,48 @@ cargo run --example custom_structs
 cargo run --example async_properties
 ```
 
+## Property-Based Benchmarking
+
+**protest-criterion** provides integration with [Criterion](https://crates.io/crates/criterion) for property-based benchmarking.
+
+Benchmark your code with diverse, generated inputs to understand performance across the input space:
+
+```rust
+use criterion::{criterion_group, criterion_main, Criterion};
+use protest_criterion::PropertyBencher;
+use protest::primitives::{IntGenerator, VecGenerator};
+
+fn bench_sort(c: &mut Criterion) {
+    c.bench_property(
+        "vec sort",
+        VecGenerator::new(IntGenerator::new(0, 1000), 100, 1000),
+        |v: &Vec<i32>| {
+            let mut sorted = v.clone();
+            sorted.sort();
+        },
+        100, // Test with 100 different generated inputs
+    );
+}
+
+criterion_group!(benches, bench_sort);
+criterion_main!(benches);
+```
+
+**Benefits:**
+- 📊 **Performance distribution** - See how code performs across input space
+- 🔍 **Edge case discovery** - Find performance bottlenecks automatically
+- 📈 **Statistical analysis** - Leverage Criterion's regression detection
+- ⚡ **Realistic workloads** - Use generators for production-like data
+
+**Install:**
+```toml
+[dev-dependencies]
+protest-criterion = "0.1"
+criterion = "0.5"
+```
+
+See the [protest-criterion README](protest-criterion/README.md) for comprehensive documentation and examples.
+
 ## Feature Flags
 
 ```toml
@@ -813,7 +856,9 @@ Inspired by:
 - [x] Enhanced shrinking strategies (protest-extras)
 - [x] Property test replay and persistence
 - [x] Stateful property testing DSL (protest-stateful)
-- [ ] Integration with more test frameworks
+- [x] Property-based benchmarking (protest-criterion)
+- [ ] Snapshot testing integration (protest-insta)
+- [ ] Proptest compatibility layer
 - [ ] Coverage-guided generation (advanced)
 
 ---
