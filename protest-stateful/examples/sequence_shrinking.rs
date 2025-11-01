@@ -35,6 +35,7 @@ enum CounterOp {
     Increment,
     Decrement,
     Add(i32),
+    #[allow(dead_code)]
     Reset,
 }
 

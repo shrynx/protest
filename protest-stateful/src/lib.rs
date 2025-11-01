@@ -65,6 +65,9 @@
 //! # }
 //! ```
 
+// Re-export derive macros
+pub use protest_stateful_derive::{Operation, stateful_test};
+
 pub mod concurrent;
 pub mod dsl;
 pub mod invariants;

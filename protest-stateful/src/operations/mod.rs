@@ -1,7 +1,10 @@
 //! Operation execution and sequence generation for stateful testing
 
+pub mod generator;
 pub mod sequence;
 pub mod shrinking;
+
+pub use generator::WeightedGenerator;
 
 use std::fmt::Debug;
 
@@ -21,6 +24,12 @@ pub trait Operation: Debug + Clone {
     /// Optional: Get a human-readable description
     fn description(&self) -> String {
         format!("{:?}", self)
+    }
+
+    /// Optional: Get the weight for weighted generation (higher = more frequent)
+    /// Default weight is 1 for all operations
+    fn weight(&self) -> u32 {
+        1
     }
 }
 

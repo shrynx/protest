@@ -260,30 +260,6 @@ mod basic_macro_tests {
             Err(failure) => panic!("Property test failed: {}", failure.error),
         }
     }
-
-    // Test integration with ignore attribute
-    #[test]
-    #[ignore = "Long running test"]
-    fn test_ignored_property() {
-        struct LongRunningProperty;
-        impl Property<Vec<i32>> for LongRunningProperty {
-            type Output = ();
-
-            fn test(&self, input: Vec<i32>) -> Result<Self::Output, PropertyError> {
-                // Simulate long-running computation
-                let _sum: i64 = input.iter().map(|&x| x as i64).sum();
-                Ok(())
-            }
-        }
-
-        let generator = protest::primitives::VecGenerator::new(range(1, 1000), 0, 1000);
-
-        let result = check(generator, LongRunningProperty);
-        assert!(
-            result.is_ok(),
-            "Long running property should pass when not ignored"
-        );
-    }
 }
 
 // Integration tests for test output and formatting

@@ -11,8 +11,10 @@ Part of the [Protest](https://github.com/shrynx/protest) property testing ecosys
 - ⚡ **Advanced Sequence Shrinking** - Delta debugging and smart shrinking for minimal counterexamples
 - 🔍 **Preconditions & Postconditions** - Define valid operation contexts
 - ⏱️ **Temporal Properties** - Express "eventually", "always", and "leads to" properties
-- 🧵 **Concurrent Testing** - Test parallel operations with race condition detection
+- 🧵 **Linearizability Verification** - Verify concurrent operations are linearizable
+- 🎨 **History Visualization** - Visual timeline and conflict analysis for concurrent executions
 - 📊 **Execution Traces** - Detailed step-by-step state visualization
+- 🔧 **Derive Macros** - Automatically implement Operation trait with `#[derive(Operation)]`
 
 ## Installation
 
@@ -76,6 +78,108 @@ fn test_stack_properties() {
     assert!(result.is_ok());
 }
 ```
+
+### Using Derive Macros (Simpler Approach)
+
+The `#[derive(Operation)]` macro automatically implements the Operation trait:
+
+```rust
+use protest_stateful::{Operation, prelude::*};
+
+// Automatically implement Operation trait
+#[derive(Debug, Clone, Operation)]
+#[operation(state = "Vec<i32>")]
+enum StackOp {
+    #[execute("state.push(*field_0)")]
+    #[weight(5)]
+    Push(i32),
+
+    #[execute("state.pop()")]
+    #[precondition("!state.is_empty()")]
+    #[weight(3)]
+    Pop,
+
+    #[execute("state.clear()")]
+    #[weight(1)]
+    Clear,
+}
+
+#[test]
+fn test_with_derive() {
+    let test = StatefulTest::new(vec![])
+        .invariant("bounded", |s: &Vec<i32>| s.len() <= 100);
+
+    let mut seq = OperationSequence::new();
+    seq.push(StackOp::Push(42));
+    seq.push(StackOp::Pop);
+
+    assert!(test.run(&seq).is_ok());
+}
+```
+
+**Derive Macro Features:**
+- `#[operation(state = "Type")]` - Specify the state type
+- `#[execute("expression")]` - Define execution logic
+- `#[precondition("expression")]` - Add precondition checks
+- `#[weight(N)]` - Control operation frequency (higher = more frequent)
+- `#[description("text")]` - Custom operation descriptions
+
+For unnamed fields (tuple variants), use `field_0`, `field_1`, etc. in expressions.
+For named fields, use the field names directly.
+
+### Weight-Based Operation Generation
+
+Generate operations according to their weights to create realistic test scenarios:
+
+```rust
+use protest_stateful::{Operation, operations::WeightedGenerator};
+use rand::thread_rng;
+
+#[derive(Debug, Clone, Operation)]
+#[operation(state = "BankAccount")]
+enum BankOp {
+    #[execute("state.deposit(*field_0)")]
+    #[weight(10)]  // Common: deposits happen frequently
+    Deposit(u32),
+
+    #[execute("state.withdraw(*field_0)")]
+    #[precondition("state.balance >= *field_0")]
+    #[weight(7)]   // Fairly common
+    Withdraw(u32),
+
+    #[execute("let _ = state.balance")]
+    #[weight(15)]  // Very common: balance checks
+    CheckBalance,
+
+    #[execute("state.close()")]
+    #[weight(1)]   // Rare: account closures
+    Close,
+}
+
+// Create a weighted generator
+let variants = vec![
+    BankOp::Deposit(10),
+    BankOp::Withdraw(5),
+    BankOp::CheckBalance,
+    BankOp::Close,
+];
+let mut generator = WeightedGenerator::new(variants, thread_rng());
+
+// Generate 100 operations with realistic frequencies
+let operations = generator.generate(100);
+// CheckBalance appears ~44% of the time (weight 15/34)
+// Deposit appears ~29% of the time (weight 10/34)
+// Withdraw appears ~20% of the time (weight 7/34)
+// Close appears ~3% of the time (weight 1/34)
+```
+
+**Benefits of weighted generation:**
+- **Realistic workloads**: Mirror real-world usage patterns
+- **Common paths tested more**: High-frequency operations get more coverage
+- **Rare edge cases still tested**: Low-weight operations still appear occasionally
+- **Performance testing**: Simulate production-like operation distributions
+
+See the [weighted_generation.rs](examples/weighted_generation.rs) example for complete demonstrations.
 
 ## Core Concepts
 
@@ -221,7 +325,91 @@ let prop4 = LeadsTo::new(
 assert!(prop4.check(&states));
 ```
 
-## Concurrent Testing
+## Concurrent Testing & Linearizability Verification
+
+### Linearizability Checking
+
+Verify that concurrent operations are linearizable - ensuring they appear to execute atomically at some point between invocation and response.
+
+```rust
+use protest_stateful::concurrent::linearizability::*;
+use std::time::{Duration, Instant};
+use std::collections::VecDeque;
+
+// Define a sequential specification
+#[derive(Debug)]
+struct QueueModel {
+    queue: VecDeque<i32>,
+}
+
+impl SequentialSpec for QueueModel {
+    fn apply(&mut self, operation: &str) -> String {
+        if let Some(val) = operation.strip_prefix("enqueue(") {
+            let v: i32 = val.trim_end_matches(')').parse().unwrap();
+            self.queue.push_back(v);
+            "ok".to_string()
+        } else if operation == "dequeue()" {
+            self.queue.pop_front()
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "empty".to_string())
+        } else {
+            "unknown".to_string()
+        }
+    }
+
+    fn reset(&mut self) {
+        self.queue.clear();
+    }
+}
+
+#[test]
+fn test_queue_linearizability() {
+    let mut history = History::new();
+    let start = Instant::now();
+
+    // Record concurrent operations
+    let op1 = history.record_invocation(0, "enqueue(1)".to_string(), start);
+    history.record_response(op1, "ok".to_string(), start + Duration::from_millis(10));
+
+    let op2 = history.record_invocation(1, "enqueue(2)".to_string(),
+        start + Duration::from_millis(5));
+    history.record_response(op2, "ok".to_string(), start + Duration::from_millis(15));
+
+    let op3 = history.record_invocation(2, "dequeue()".to_string(),
+        start + Duration::from_millis(20));
+    history.record_response(op3, "1".to_string(), start + Duration::from_millis(30));
+
+    // Check linearizability
+    let model = QueueModel { queue: VecDeque::new() };
+    let mut checker = LinearizabilityChecker::new(model);
+
+    let result = checker.check(&history);
+
+    match result {
+        LinearizabilityResult::Linearizable { order } => {
+            println!("✓ Operations are linearizable!");
+            println!("Valid order: {:?}", order);
+        }
+        LinearizabilityResult::NotLinearizable { reason, .. } => {
+            panic!("Not linearizable: {}", reason);
+        }
+    }
+}
+```
+
+### Visualization
+
+Visualize concurrent histories and linearizability results:
+
+```rust
+// Visualize the execution timeline
+println!("{}", history.visualize());
+
+// Get detailed linearizability analysis
+println!("{}", result.visualize(&history));
+```
+
+### Basic Concurrent Testing
 
 Test parallel operations on concurrent data structures:
 
@@ -251,7 +439,7 @@ fn test_concurrent_operations() {
     let config = ConcurrentConfig {
         thread_count,
         operations_per_thread,
-        check_linearizability: true,
+        check_linearizability: false,  // Set to true to enable checking
     };
 
     let result = run_concurrent(initial, operations, config);
@@ -283,6 +471,8 @@ See the [examples/](examples/) directory for complete examples:
 - [`key_value_store.rs`](examples/key_value_store.rs) - Model-based testing of a key-value store
 - [`concurrent_queue.rs`](examples/concurrent_queue.rs) - Concurrent testing of a queue
 - [`sequence_shrinking.rs`](examples/sequence_shrinking.rs) - Advanced shrinking strategies demonstration
+- [`linearizability_verification.rs`](examples/linearizability_verification.rs) - Linearizability checking for concurrent operations
+- [`derive_macro.rs`](examples/derive_macro.rs) - Using #[derive(Operation)] for automatic trait implementation
 
 Run examples:
 
@@ -291,6 +481,7 @@ cargo run --example stack
 cargo run --example key_value_store
 cargo run --example concurrent_queue
 cargo run --example sequence_shrinking
+cargo run --example linearizability_verification
 ```
 
 ## Use Cases

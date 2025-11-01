@@ -636,9 +636,21 @@ name = "protest-stateful"
 version = "0.1.0"
 dependencies = [
  "protest",
+ "protest-stateful-derive",
  "rand",
+ "rand_chacha",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "protest-stateful-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "protest-stateful",
+ "quote",
+ "syn",
 ]
 
 [[package]]

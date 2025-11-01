@@ -12,12 +12,14 @@ readme = "README.md"
 
 [dependencies]
 protest = { path = "../protest", version = "0.1" }
+protest-stateful-derive = { path = "../protest-stateful-derive", version = "0.1" }
 rand = "0.8"
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
 
 [dev-dependencies]
 protest = { path = "../protest", features = ["derive"] }
+rand_chacha = "0.3"
 
 [features]
 default = []
@@ -34,3 +36,15 @@ path = "examples/key_value_store.rs"
 [[example]]
 name = "concurrent_queue"
 path = "examples/concurrent_queue.rs"
+
+[[example]]
+name = "derive_macro"
+path = "examples/derive_macro.rs"
+
+[[example]]
+name = "linearizability_verification"
+path = "examples/linearizability_verification.rs"
+
+[[example]]
+name = "weighted_generation"
+path = "examples/weighted_generation.rs"

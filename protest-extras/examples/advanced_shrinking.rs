@@ -96,7 +96,7 @@ fn example_2_guided_shrinker() {
 
     println!("\nFinding minimal subset containing element 7...");
     let (minimal2, iterations2) =
-        shrinker2.find_minimal_with_stats(|v| v.contains(&7) && v.len() > 0);
+        shrinker2.find_minimal_with_stats(|v| v.contains(&7) && !v.is_empty());
 
     println!("Minimal vector: {:?}", minimal2);
     println!("Iterations used: {}", iterations2);

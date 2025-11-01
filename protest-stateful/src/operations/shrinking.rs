@@ -561,7 +561,7 @@ mod tests {
 
         let initial = Counter { value: 0 };
 
-        let test: StatefulTest<Counter, CounterOp> = StatefulTest::new(initial.clone())
+        let _test: StatefulTest<Counter, CounterOp> = StatefulTest::new(initial.clone())
             .invariant("always_positive", |s: &Counter| s.value > 0);
 
         // This test passes, but we're testing shrinking with preconditions

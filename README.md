@@ -611,39 +611,30 @@ println!("Corpus size: {}", stats.corpus_size);
 ### Testing State Machines
 
 ```rust
-use protest_stateful::prelude::*;
+use protest_stateful::{Operation, prelude::*};
 
-#[derive(Debug, Clone)]
-struct Stack { items: Vec<i32> }
-
-#[derive(Debug, Clone)]
+// Use derive macro for automatic Operation implementation
+#[derive(Debug, Clone, Operation)]
+#[operation(state = "Vec<i32>")]
 enum StackOp {
+    #[execute("state.push(*field_0)")]
+    #[weight(5)]
     Push(i32),
+
+    #[execute("state.pop()")]
+    #[precondition("!state.is_empty()")]
+    #[weight(3)]
     Pop,
-}
 
-impl Operation for StackOp {
-    type State = Stack;
-
-    fn execute(&self, state: &mut Self::State) {
-        match self {
-            StackOp::Push(v) => state.items.push(*v),
-            StackOp::Pop => { state.items.pop(); }
-        }
-    }
-
-    fn precondition(&self, state: &Self::State) -> bool {
-        match self {
-            StackOp::Pop => !state.items.is_empty(),
-            _ => true,
-        }
-    }
+    #[execute("state.clear()")]
+    #[weight(1)]
+    Clear,
 }
 
 #[test]
 fn test_stack_properties() {
-    let test = StatefulTest::new(Stack { items: vec![] })
-        .invariant("length_non_negative", |s| s.items.len() >= 0);
+    let test = StatefulTest::new(vec![])
+        .invariant("bounded", |s: &Vec<i32>| s.len() <= 100);
 
     let mut seq = OperationSequence::new();
     seq.push(StackOp::Push(10));
@@ -652,6 +643,13 @@ fn test_stack_properties() {
     assert!(test.run(&seq).is_ok());
 }
 ```
+
+**Derive Macro Features:**
+- `#[operation(state = "Type")]` - Specify the state type
+- `#[execute("expression")]` - Define execution logic
+- `#[precondition("expression")]` - Add precondition checks
+- `#[weight(N)]` - Control operation frequency (higher = more frequent)
+- `#[description("text")]` - Custom operation descriptions
 
 ### Model-Based Testing
 
@@ -696,21 +694,34 @@ let prop = Always::new("non_negative", |s| s.value >= 0);
 assert!(prop.check(&states));
 ```
 
-### Concurrent Testing
+### Linearizability Verification
 
-Test parallel operations on concurrent data structures:
+Verify that concurrent operations are linearizable:
 
 ```rust
-use protest_stateful::concurrent::*;
+use protest_stateful::concurrent::linearizability::*;
+use std::time::Instant;
 
-let config = ConcurrentConfig {
-    thread_count: 4,
-    operations_per_thread: 100,
-    check_linearizability: true,
-};
+let mut history = History::new();
+let start = Instant::now();
 
-let result = run_concurrent(initial_state, operations, config);
-assert!(result.is_ok());
+// Record concurrent operations
+let op1 = history.record_invocation(0, "enqueue(1)".to_string(), start);
+history.record_response(op1, "ok".to_string(), start + Duration::from_millis(10));
+
+// Check if execution is linearizable
+let mut checker = LinearizabilityChecker::new(queue_model);
+let result = checker.check(&history);
+
+match result {
+    LinearizabilityResult::Linearizable { order } => {
+        println!("✓ Operations are linearizable!");
+    }
+    LinearizabilityResult::NotLinearizable { reason, .. } => {
+        println!("✗ Found linearizability violation: {}", reason);
+        println!("{}", history.visualize());  // Visual timeline
+    }
+}
 ```
 
 **Learn more:** See [protest-stateful README](protest-stateful/README.md) for full documentation.

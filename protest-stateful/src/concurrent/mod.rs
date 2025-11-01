@@ -2,6 +2,8 @@
 //!
 //! Test parallel operations on concurrent data structures
 
+pub mod linearizability;
+
 use crate::operations::Operation;
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
