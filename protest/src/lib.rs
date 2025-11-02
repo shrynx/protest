@@ -172,7 +172,7 @@ mod tests {
         // Test complex strategy composition through public API
         let strategy = range(1, 5)
             .map(|x| x * 2)
-            .filter(|&x| x > 4)
+            .filter(|x| x > &4)
             .zip(just("test"));
 
         let mut rng = thread_rng();

@@ -306,27 +306,68 @@ impl Generator<String> for StringGenerator {
         let value = value.clone();
         let mut shrinks = Vec::new();
 
-        // Shrink towards empty string
-        if value.len() > self.min_length {
+        // 1. Try simple common strings first (if they meet min_length requirement)
+        let simple_strings = ["", "a", "A", "0", "1", "test", "foo", "x"];
+        for simple in simple_strings {
+            if simple.len() >= self.min_length && simple.len() <= value.len() && simple != value {
+                shrinks.push(simple.to_string());
+            }
+        }
+
+        // 2. Shrink towards empty string (only if min_length allows it)
+        if self.min_length == 0 && !value.is_empty() && !shrinks.contains(&"".to_string()) {
             shrinks.push("".to_string());
         }
 
-        // Shrink by removing characters
+        // 3. Shrink by removing characters from the end
         if value.len() > self.min_length {
-            // Remove from the end
-            for i in (self.min_length..value.len()).rev() {
+            // Try removing half the string
+            let half = value.len() / 2;
+            if half >= self.min_length {
+                shrinks.push(value.chars().take(half).collect());
+            }
+
+            // Remove from the end progressively
+            for i in (self.min_length..value.len()).rev().step_by(2) {
                 shrinks.push(value.chars().take(i).collect());
             }
         }
 
-        // Shrink individual characters
+        // 4. Shrink individual characters to simpler forms
         if !value.is_empty() {
             let chars: Vec<char> = value.chars().collect();
+
+            // Shrink each character toward simpler characters
             for (i, &c) in chars.iter().enumerate() {
+                // Try shrinking toward lowercase 'a'
+                if c != 'a' && c.is_alphabetic() {
+                    let mut new_chars = chars.clone();
+                    new_chars[i] = 'a';
+                    shrinks.push(new_chars.into_iter().collect());
+                }
+
+                // Try shrinking toward '0' for digits
+                if c != '0' && c.is_numeric() {
+                    let mut new_chars = chars.clone();
+                    new_chars[i] = '0';
+                    shrinks.push(new_chars.into_iter().collect());
+                }
+
+                // Try lowercase version of uppercase letters
+                if c.is_uppercase() {
+                    let mut new_chars = chars.clone();
+                    new_chars[i] = c.to_lowercase().next().unwrap();
+                    shrinks.push(new_chars.into_iter().collect());
+                }
+
+                // Use the character generator's shrink method
                 for shrunk_char in self.char_generator.shrink(&c) {
                     let mut new_chars = chars.clone();
                     new_chars[i] = shrunk_char;
-                    shrinks.push(new_chars.into_iter().collect());
+                    let shrunk_string: String = new_chars.into_iter().collect();
+                    if !shrinks.contains(&shrunk_string) {
+                        shrinks.push(shrunk_string);
+                    }
                 }
             }
         }
@@ -387,10 +428,20 @@ where
             shrinks.push(Vec::new());
         }
 
-        // Shrink by removing elements
+        // Shrink by removing elements (structural shrinking)
         if value.len() > self.min_length {
             for i in (self.min_length..value.len()).rev() {
                 shrinks.push(value.iter().take(i).cloned().collect());
+            }
+        }
+
+        // Element-wise shrinking: try shrinking individual elements
+        for i in 0..value.len() {
+            let element_shrinks = self.element_generator.shrink(&value[i]);
+            for shrunk_element in element_shrinks {
+                let mut shrunk_vec = value.clone();
+                shrunk_vec[i] = shrunk_element;
+                shrinks.push(shrunk_vec);
             }
         }
 
@@ -457,6 +508,8 @@ where
     fn shrink(&self, value: &HashMap<K, V>) -> Box<dyn Iterator<Item = HashMap<K, V>>> {
         let mut shrinks = Vec::new();
 
+        // 1. Structural shrinking: remove entries
+
         // Shrink towards empty map
         if value.len() > self.min_size {
             shrinks.push(HashMap::new());
@@ -468,6 +521,33 @@ where
                 let mut smaller = value.clone();
                 smaller.remove(key);
                 shrinks.push(smaller);
+            }
+        }
+
+        // 2. Element-wise shrinking: shrink keys and values
+
+        // Shrink values while keeping keys the same
+        for (key, val) in value.iter() {
+            for shrunk_val in self.value_generator.shrink(val) {
+                let mut shrunk_map = value.clone();
+                shrunk_map.insert(key.clone(), shrunk_val);
+                shrinks.push(shrunk_map);
+            }
+        }
+
+        // Shrink keys while keeping values the same
+        // This is more complex because changing a key means removing the old entry
+        // and inserting a new one with the shrunk key
+        for (key, val) in value.iter() {
+            for shrunk_key in self.key_generator.shrink(key) {
+                // Only proceed if the shrunk key doesn't already exist in the map
+                // or if it's the same key (in which case it's not a real shrink)
+                if !value.contains_key(&shrunk_key) {
+                    let mut shrunk_map = value.clone();
+                    shrunk_map.remove(key);
+                    shrunk_map.insert(shrunk_key, val.clone());
+                    shrinks.push(shrunk_map);
+                }
             }
         }
 
@@ -603,6 +683,162 @@ mod tests {
     }
 
     #[test]
+    fn test_hashmap_structural_shrinking() {
+        // Test that HashMap shrinks by removing entries
+        let key_gen = IntGenerator::new(1, 100);
+        let value_gen = IntGenerator::new(1, 100);
+        let generator = HashMapGenerator::new(key_gen, value_gen, 0, 5);
+
+        let mut map = HashMap::new();
+        map.insert(1, 10);
+        map.insert(2, 20);
+        map.insert(3, 30);
+
+        let shrinks: Vec<HashMap<i32, i32>> = generator.shrink(&map).collect();
+
+        // Should include empty map as a shrink
+        assert!(
+            shrinks.iter().any(|m| m.is_empty()),
+            "Should shrink to empty map"
+        );
+
+        // Should include maps with fewer entries
+        assert!(
+            shrinks.iter().any(|m| m.len() < map.len()),
+            "Should have smaller maps"
+        );
+    }
+
+    #[test]
+    fn test_hashmap_value_shrinking() {
+        // Test that HashMap shrinks individual values
+        let key_gen = IntGenerator::new(1, 100);
+        let value_gen = IntGenerator::new(0, 100);
+        let generator = HashMapGenerator::new(key_gen, value_gen, 0, 5);
+
+        let mut map = HashMap::new();
+        map.insert(1, 100);
+        map.insert(2, 50);
+
+        let shrinks: Vec<HashMap<i32, i32>> = generator.shrink(&map).collect();
+
+        // Should have shrinks where values are smaller
+        // Value 100 should shrink toward 0: 50, 25, 12, etc.
+        assert!(
+            shrinks
+                .iter()
+                .any(|m| { m.len() == map.len() && m.get(&1).map(|&v| v < 100).unwrap_or(false) }),
+            "Should shrink value at key 1"
+        );
+
+        assert!(
+            shrinks
+                .iter()
+                .any(|m| { m.len() == map.len() && m.get(&2).map(|&v| v < 50).unwrap_or(false) }),
+            "Should shrink value at key 2"
+        );
+    }
+
+    #[test]
+    fn test_hashmap_key_shrinking() {
+        // Test that HashMap shrinks individual keys
+        let key_gen = IntGenerator::new(0, 100);
+        let value_gen = IntGenerator::new(1, 10);
+        let generator = HashMapGenerator::new(key_gen, value_gen, 0, 5);
+
+        let mut map = HashMap::new();
+        map.insert(100, 1);
+        map.insert(50, 2);
+
+        let shrinks: Vec<HashMap<i32, i32>> = generator.shrink(&map).collect();
+
+        // Should have shrinks where keys are smaller
+        // Key 100 should shrink toward 0: 50, 25, 12, etc.
+        // The shrunk key must not collide with existing keys
+        assert!(
+            shrinks
+                .iter()
+                .any(|m| { m.len() == map.len() && m.contains_key(&25) && m.get(&25) == Some(&1) }),
+            "Should shrink key 100 to smaller values like 25"
+        );
+    }
+
+    #[test]
+    fn test_hashmap_combined_shrinking() {
+        // Test that HashMap does both structural and element-wise shrinking
+        let key_gen = IntGenerator::new(0, 100);
+        let value_gen = IntGenerator::new(0, 100);
+        let generator = HashMapGenerator::new(key_gen, value_gen, 0, 5);
+
+        let mut map = HashMap::new();
+        map.insert(80, 90);
+        map.insert(40, 45);
+
+        let shrinks: Vec<HashMap<i32, i32>> = generator.shrink(&map).collect();
+
+        // Should have structural shrinks
+        assert!(
+            shrinks.iter().any(|m| m.is_empty()),
+            "Should have empty map"
+        );
+        assert!(
+            shrinks.iter().any(|m| m.len() == 1),
+            "Should have single-entry map"
+        );
+
+        // Should have value shrinks
+        assert!(
+            shrinks
+                .iter()
+                .any(|m| { m.len() == 2 && m.get(&80).map(|&v| v < 90).unwrap_or(false) }),
+            "Should shrink values"
+        );
+
+        // Should have key shrinks (but avoiding collisions)
+        // Check that we attempted to shrink keys by looking for maps that have
+        // different keys but same size
+        let has_key_shrinks = shrinks.iter().any(|m| {
+            m.len() == 2
+                && ((m.contains_key(&80) && !m.contains_key(&40))
+                    || (!m.contains_key(&80) && m.contains_key(&40)))
+        });
+        assert!(has_key_shrinks, "Should have attempted to shrink keys");
+    }
+
+    #[test]
+    fn test_hashset_element_shrinking() {
+        // Test that HashSet shrinks individual elements
+        let elem_gen = IntGenerator::new(0, 100);
+        let generator = HashSetGenerator::new(elem_gen, 0, 5);
+
+        let mut set = HashSet::new();
+        set.insert(100);
+        set.insert(50);
+        set.insert(25);
+
+        let shrinks: Vec<HashSet<i32>> = generator.shrink(&set).collect();
+
+        // Should have structural shrinks (removing elements)
+        assert!(
+            shrinks.iter().any(|s| s.is_empty()),
+            "Should shrink to empty set"
+        );
+        assert!(
+            shrinks.iter().any(|s| s.len() < set.len()),
+            "Should have smaller sets"
+        );
+
+        // Should have element-wise shrinks (shrinking individual elements)
+        // Element 100 should shrink to 50, 25, etc.
+        assert!(
+            shrinks.iter().any(|s| {
+                s.len() == set.len() && s.contains(&50) && s.contains(&25) && !s.contains(&100)
+            }),
+            "Should shrink element 100 to smaller values"
+        );
+    }
+
+    #[test]
     fn test_full_range_generators() {
         let i32_gen = IntGenerator::<i32>::full_range();
         let f64_gen = FloatGenerator::<f64>::reasonable_range();
@@ -613,6 +849,139 @@ mod tests {
         // Just test that they can generate values without panicking
         let _int_val = i32_gen.generate(&mut rng, &config);
         let _float_val = f64_gen.generate(&mut rng, &config);
+    }
+
+    #[test]
+    fn test_string_shrinks_to_simple_strings() {
+        // Test that strings shrink to common simple strings
+        let generator = StringGenerator::ascii_printable(0, 10);
+        let test_string = "complex".to_string();
+
+        let shrinks: Vec<String> = generator.shrink(&test_string).collect();
+
+        // Should include simple common strings
+        assert!(
+            shrinks.contains(&"".to_string()),
+            "Should shrink to empty string"
+        );
+        assert!(shrinks.contains(&"a".to_string()), "Should shrink to 'a'");
+        assert!(
+            shrinks.contains(&"test".to_string()),
+            "Should shrink to 'test'"
+        );
+    }
+
+    #[test]
+    fn test_string_character_simplification() {
+        // Test that individual characters shrink to simpler forms
+        let generator = StringGenerator::ascii_printable(0, 10);
+        let test_string = "ZXY".to_string();
+
+        let shrinks: Vec<String> = generator.shrink(&test_string).collect();
+
+        // Should shrink uppercase to lowercase
+        assert!(
+            shrinks.contains(&"zXY".to_string())
+                || shrinks.contains(&"ZxY".to_string())
+                || shrinks.contains(&"ZXy".to_string()),
+            "Should shrink some uppercase letters to lowercase"
+        );
+
+        // Should shrink letters toward 'a'
+        assert!(
+            shrinks.contains(&"aXY".to_string())
+                || shrinks.contains(&"ZaY".to_string())
+                || shrinks.contains(&"ZXa".to_string()),
+            "Should shrink some letters toward 'a'"
+        );
+    }
+
+    #[test]
+    fn test_string_digit_simplification() {
+        // Test that digits shrink toward '0'
+        let generator = StringGenerator::ascii_alphanumeric(0, 10);
+        let test_string = "abc789".to_string();
+
+        let shrinks: Vec<String> = generator.shrink(&test_string).collect();
+
+        // Should shrink digits toward '0'
+        assert!(
+            shrinks.iter().any(|s| s.contains('0')),
+            "Should shrink some digits toward '0'"
+        );
+    }
+
+    #[test]
+    fn test_string_length_reduction() {
+        // Test that strings shrink in length
+        let generator = StringGenerator::ascii_printable(0, 20);
+        let test_string = "verylongstring".to_string();
+
+        let shrinks: Vec<String> = generator.shrink(&test_string).collect();
+
+        // Should have shorter strings
+        assert!(
+            shrinks.iter().any(|s| s.len() < test_string.len()),
+            "Should produce shorter strings"
+        );
+
+        // Should try removing half
+        let half_len = test_string.len() / 2;
+        assert!(
+            shrinks.iter().any(|s| s.len() == half_len),
+            "Should try removing half the string"
+        );
+    }
+
+    #[test]
+    fn test_string_respects_min_length() {
+        // Test that shrinking respects minimum length
+        let generator = StringGenerator::ascii_printable(3, 10);
+        let test_string = "hello".to_string();
+
+        let shrinks: Vec<String> = generator.shrink(&test_string).collect();
+
+        // All shrinks should be at least min_length
+        for shrink in &shrinks {
+            assert!(
+                shrink.len() >= 3,
+                "Shrink '{}' should be at least {} chars, got {}",
+                shrink,
+                3,
+                shrink.len()
+            );
+        }
+
+        // Should not include empty string or single character
+        assert!(
+            !shrinks.contains(&"".to_string()),
+            "Should not shrink below min_length"
+        );
+        assert!(
+            !shrinks.contains(&"a".to_string()),
+            "Should not shrink below min_length"
+        );
+    }
+
+    #[test]
+    fn test_string_combined_shrinking() {
+        // Test that string uses all shrinking strategies together
+        let generator = StringGenerator::ascii_alphanumeric(0, 20);
+        let test_string = "HELLO123".to_string();
+
+        let shrinks: Vec<String> = generator.shrink(&test_string).collect();
+
+        // Should have structural shrinks (shorter strings)
+        assert!(shrinks.iter().any(|s| s.len() < test_string.len()));
+
+        // Should have character simplification shrinks
+        assert!(shrinks.iter().any(|s| s.chars().any(|c| c.is_lowercase())));
+
+        // Should have digit simplification
+        assert!(shrinks.iter().any(|s| s.contains('0')));
+
+        // Should have simple string attempts
+        assert!(shrinks.contains(&"test".to_string()) || shrinks.contains(&"foo".to_string()));
     }
 }
 
