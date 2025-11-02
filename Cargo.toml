@@ -3,7 +3,7 @@ members = ["protest", "protest-derive", "protest-extras", "protest-cli", "protes
 resolver = "2"
 
 [workspace.package]
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 license = "MIT"
 authors = ["shrynx <shriyansbhatnagar@gmail.com>"]
@@ -22,14 +22,14 @@ crossbeam = "0.8"
 num_cpus = "1.0"
 
 # Internal workspace crates
-protest = { version = "*", path = "protest" }
-protest-derive = { version = "*", path = "protest-derive" }
-protest-stateful = { version = "*", path = "protest-stateful" }
-protest-stateful-derive = { version = "*", path = "protest-stateful-derive" }
-protest-extras = { version = "*", path = "protest-extras" }
-protest-criterion = { version = "*", path = "protest-criterion" }
-protest-insta = { version = "*", path = "protest-insta" }
-protest-proptest-compat = { version = "*", path = "protest-proptest-compat" }
+protest = { version = "1.1.0", path = "protest" }
+protest-derive = { version = "1.1.0", path = "protest-derive" }
+protest-stateful = { version = "1.1.0", path = "protest-stateful" }
+protest-stateful-derive = { version = "1.1.0", path = "protest-stateful-derive" }
+protest-extras = { version = "1.1.0", path = "protest-extras" }
+protest-criterion = { version = "1.1.0", path = "protest-criterion" }
+protest-insta = { version = "1.1.0", path = "protest-insta" }
+protest-proptest-compat = { version = "1.1.0", path = "protest-proptest-compat" }
 
 [patch.crates-io]
 protest = { path = "protest" }
